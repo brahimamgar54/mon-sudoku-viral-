@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUDOKU OR DIE</title>
+    <style>
+        :root { --blood: #8a0303; --neon: #00f2ea; }
+        body { background: #000; color: #eee; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        /* Scene de jeu */
+        .scene { position: relative; width: 100%; max-width: 400px; padding: 15px; background: radial-gradient(circle at 50% 50%, rgba(255,255,200,0.05) 0%, rgba(0,0,0,1) 85%); display: none; }
+        
+        #monster-dialogue { height: 60px; text-align: center; color: var(--blood); font-weight: bold; font-size: 1.1rem; text-shadow: 0 0 15px #000; margin-bottom: 5px; }
+        
+        #game-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background: #222; border: 4px solid #111; width: 88vw; max-width: 350px; aspect-ratio: 1; margin: 0 auto; box-shadow: 0 0 50px #000; }
+        .tile { background: #fdfdfd; color: #111; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; cursor: pointer; border: 0.1px solid #ddd; }
+        .tile.selected { background: #bbb; box-shadow: inset 0 0 10px var(--neon); }
+        .tile.prefilled { background: #d1d1d1; color: #555; pointer-events: none; }
+        
+        .numpad { display: flex; justify-content: center; gap: 4px; margin-top: 20px; }
+        .num-btn { background: #0a0a0a; color: white; border: 1px solid #333; padding: 15px; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+        
+        .threat-bar { width: 100%; height: 4px; background: #111; margin: 10px 0; }
+        #monster-progress { width: 0%; height: 100%; background: var(--blood); box-shadow: 0 0 10px var(--blood); }
+
+        /* MENU PRINCIPAL */
+        #menu { position: fixed; inset: 0; background: black; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
+        .btn-help { position: absolute; top: 20px; left: 20px; background: none; border: 1px solid #444; color: #444; padding: 10px; cursor: pointer; }
+        .title { color: var(--blood); font-size: 2.5rem; letter-spacing: 5px; margin-bottom: 10px; }
+        .sub-title { font-size: 1rem; color: #888; margin-bottom: 50px; max-width: 300px; line-height: 1.5; }
+        .start-btn { background: #111; color: var(--blood); border: 2px solid var(--blood); padding: 20px 40px; font-weight: bold; cursor: pointer; font-size: 1.2rem; transition: 0.3s; }
+        .start-btn:hover { background: var(--blood); color: black; }
+
+        /* AIDE MODALE */
+        #help-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; padding: 40px; font-size: 0.9rem; border: 1px solid var(--blood); margin: 20px; }
+        
+        #death-screen { display: none; position: fixed; inset: 0; background: #000; z-index: 300; flex-direction: column; justify-content: center; align-items: center; color: var(--blood); }
+    </style>
+</head>
+<body>
+
+<div id="menu">
+    <button class="btn-help" onclick="toggleHelp(true)">? AIDE</button>
+    <h1 class="title">SUDOKU<br>OR DIE</h1>
+    <p class="sub-title">TERMINE LE NIVEAU AVANT LE MONSTRE... OU MEURS DANS LE NOIR.</p>
+    <button class="start-btn" onclick="enterRoom()">ENTRER DANS LA PIÈCE</button>
+</div>
+
+<div id="help-modal" onclick="toggleHelp(false)">
+    <h2 style="color:var(--neon)">REGLEMENT</h2>
+    <p>1. Remplis la grille avec les chiffres de 1 à 9.</p>
+    <p>2. <b>INTERDIT</b> d'avoir le même chiffre sur une ligne ou une colonne.</p>
+    <p>3. <b>INTERDIT</b> d'avoir le même chiffre dans un carré 3x3.</p>
+    <p style="margin-top:20px; color:gray;">(Clique pour fermer)</p>
+</div>
+
+<div id="death-screen">
+    <h1 style="font-size:4rem;">🔫</h1>
+    <h1>TU ES MORT</h1>
+    <p style="color:#666">"Tu as rejoint les autres."</p>
+    <button onclick="location.reload()" style="background:none; border:1px solid #444; color:white; padding:10px 20px; margin-top:20px; cursor:pointer;">REVENIR</button>
+</div>
+
+<div class="scene" id="game">
+    <div id="monster-dialogue">...</div>
+    <div style="font-size: 0.7rem; color: #444; margin-bottom: 5px; display: flex; justify-content: space-between;">
+        <span>NIVEAU <span id="lvl">1</span></span>
+        <span style="color:var(--blood)">IL APPROCHE: <span id="threat">0</span>%</span>
+    </div>
+    <div class="threat-bar"><div id="monster-progress"></div></div>
+    <div id="game-board"></div>
+    <div class="numpad" id="numpad"></div>
+</div>
+
+<script>
+    let level = 1;
+    let selectedTile = null;
+    let solution = [];
+    let progress = 0;
+    let audioCtx;
+
+    function toggleHelp(show) {
+        document.getElementById('help-modal').style.display = show ? 'block' : 'none';
+    }
+
+    // VOIX MENAÇANTE
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'fr-FR';
+        msg.pitch = 0.01; // Très grave
+        msg.rate = 0.7; // Lent et calme
+        msg.volume = 1;
+        document.getElementById('monster-dialogue').innerText = `"${text}"`;
+        window.speechSynthesis.speak(msg);
+    }
+
+    // AMBIANCE SONORE (Bourdonnement + Respiration)
+    function startAmbiance() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Bourdonnement grave (Ambient Noir)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(40, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start();
+
+        // Simulation respiration (Bruit blanc filtré)
+        setInterval(() => {
+            const noise = audioCtx.createBufferSource();
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 3, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass'; filter.frequency.value = 300;
+            const resGain = audioCtx.createGain();
+            resGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            resGain.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 1.5);
+            resGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3);
+            noise.connect(filter); filter.connect(resGain); resGain.connect(audioCtx.destination);
+            noise.start();
+        }, 4000);
+    }
+
+    function enterRoom() {
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+        startAmbiance();
+        speak("Assieds-toi. Ne me fais pas perdre mon temps.");
+        setupBoard();
+        loadLevel();
+    }
+
+    function setupBoard() {
+        const board = document.getElementById("game-board");
+        board.innerHTML = "";
+        for (let i = 0; i < 81; i++) {
+            let tile = document.createElement("div");
+            tile.id = Math.floor(i/9) + "-" + (i%9);
+            tile.className = "tile";
+            tile.onclick = () => {
+                if(selectedTile) selectedTile.classList.remove('selected');
+                selectedTile = tile;
+                tile.classList.add('selected');
+            };
+            board.appendChild(tile);
+        }
+        const pad = document.getElementById("numpad"); pad.innerHTML = "";
+        for (let i = 1; i <= 9; i++) {
+            let btn = document.createElement("button");
+            btn.innerText = i; btn.className = "num-btn";
+            btn.onclick = () => {
+                if(selectedTile && !selectedTile.classList.contains('prefilled')) {
+                    selectedTile.innerText = i;
+                    checkWin();
+                }
+            };
+            pad.appendChild(btn);
+        }
+    }
+
+    function loadLevel() {
+        progress = 0;
+        document.getElementById('lvl').innerText = level;
+        let base = ["534678912", "672195348", "198342567", "859761423", "426853791", "713924856", "961537284", "287419635", "345286179"];
+        solution = base.map(row => row.split(''));
+
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                let tile = document.getElementById(r + "-" + c);
+                tile.innerText = ""; tile.classList.remove('prefilled');
+                // NIVEAU 1 : Seulement 2 chiffres à trouver
+                let chance = Math.max(0.97 - (level * 0.02), 0.25);
+                if(Math.random() < chance) {
+                    tile.innerText = solution[r][c];
+                    tile.classList.add('prefilled');
+                }
+            }
+        }
+        
+        clearInterval(window.timer);
+        window.timer = setInterval(() => {
+            progress += 0.8 + (level * 0.1);
+            document.getElementById('monster-progress').style.width = progress + "%";
+            document.getElementById('threat').innerText = Math.floor(progress);
+            if(progress >= 100) { gameOver(); }
+            if(Math.floor(progress) % 25 == 0 && progress < 90) {
+                const phrases = ["Tu es bien lent aujourd'hui.", "Ma main commence à se fatiguer.", "Le prochain niveau sera ton dernier.", "Entends-tu ton cœur battre ?"];
+                speak(phrases[Math.floor(Math.random()*phrases.length)]);
+            }
+        }, 1000);
+    }
+
+    function checkWin() {
+        let win = true;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if(document.getElementById(r + "-" + c).innerText != solution[r][c]) win = false;
+            }
+        }
+        if(win) {
+            level++;
+            speak("Bien. Mais ce n'était que le début.");
+            loadLevel();
+        }
+    }
+
+    function gameOver() {
+        clearInterval(window.timer);
+        speak("Adieu.");
+        setTimeout(() => {
+            document.getElementById('death-screen').style.display = 'flex';
+            document.getElementById('game').style.display = 'none';
+        }, 1000);
+    }
+</script>
+</body>
+</html>
