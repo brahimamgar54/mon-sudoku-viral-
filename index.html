@@ -3,193 +3,525 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SUDOKU OR DIE</title>
+    <title>SUDOKU OR DIE: PURGATORY</title>
     <style>
-        :root { --blood: #800; --active: #f00; }
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; touch-action: none; }
-        body { background: #000; color: #555; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+        :root {
+            --bg: #050505;
+            --blood: #8a0b0b;
+            --text: #a0a0a0;
+            --highlight: #e0e0e0;
+            --shadow: #000;
+        }
+
+        * { user-select: none; box-sizing: border-box; touch-action: none; -webkit-tap-highlight-color: transparent; }
         
-        /* EFFET VISUEL */
-        #vignette { position: fixed; inset: 0; background: radial-gradient(circle, transparent 40%, black 100%); pointer-events: none; z-index: 5; }
-        
-        #dialogue-zone { width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; padding: 10px; text-align: center; z-index: 10; border-bottom: 1px solid #111; }
-        #text-content { color: var(--active); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Courier Prime', monospace;
+            margin: 0; height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
 
-        /* JEU */
-        .timer-wrap { width: 100%; height: 6px; background: #050505; }
-        #timer-bar { width: 0%; height: 100%; background: var(--blood); transition: width 0.1s linear; box-shadow: 0 0 10px var(--active); }
+        /* AMBIANCE VISUELLE */
+        #noise {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABZJREFUeNpi2r9//38gYGAEESAAEGAAasgJOgzOKCoAAAAASUVORK5CYII=');
+            opacity: 0.05; pointer-events: none; z-index: 999;
+        }
+        #vignette {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle, transparent 50%, #000 100%);
+            pointer-events: none; z-index: 900;
+            transition: box-shadow 0.5s;
+        }
+        .pulse-red { box-shadow: inset 0 0 100px var(--blood); }
 
-        #grid { display: grid; grid-template-columns: repeat(9, 1fr); width: 95vw; height: 95vw; max-width: 380px; max-height: 380px; background: #111; border: 2px solid #000; margin: 10px 0; }
-        .tile { background: #000; border: 0.5px solid #111; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #fff; transition: 0.1s; }
-        .tile.fixed { color: #333; }
-        .tile.selected { background: #1a0000; outline: 1px solid var(--blood); color: var(--active); }
-        .tile.err { animation: shake 0.2s; background: #300; }
+        /* UI JEU */
+        #ui-layer { 
+            display: none; width: 100%; max-width: 450px; height: 100%; 
+            flex-direction: column; align-items: center; padding: 10px; z-index: 10;
+        }
 
+        /* MONSTRE & DIALOGUE */
+        #demon-eye {
+            width: 100%; text-align: center; margin-bottom: 10px;
+            font-size: 0.8rem; color: var(--blood); text-shadow: 0 0 5px var(--blood);
+            min-height: 60px; display: flex; align-items: center; justify-content: center;
+            border-bottom: 1px solid #222; padding-bottom: 10px;
+        }
+
+        /* PROGRESSION */
+        .status-bar {
+            width: 100%; display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem;
+        }
+        .stress-container {
+            width: 100%; height: 4px; background: #222; margin-bottom: 15px; position: relative;
+        }
+        #stress-bar {
+            width: 0%; height: 100%; background: var(--blood);
+            transition: width 0.2s linear;
+            box-shadow: 0 0 8px var(--blood);
+        }
+
+        /* GRILLE */
+        #grid {
+            display: grid; grid-template-columns: repeat(9, 1fr);
+            gap: 1px; background: var(--text); border: 2px solid var(--text);
+            width: 100%; aspect-ratio: 1;
+        }
+        .cell {
+            background: #111; display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; color: #fff; cursor: pointer; transition: background 0.1s;
+        }
+        /* Bordures épaisses pour les blocs 3x3 */
+        .cell:nth-child(3n) { border-right: 2px solid #444; }
+        .cell:nth-child(9n) { border-right: none; }
+        .cell:nth-child(n+19):nth-child(-n+27), 
+        .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #444; }
+
+        .cell.fixed { color: #555; background: #0a0a0a; pointer-events: none; }
+        .cell.selected { background: #222; box-shadow: inset 0 0 10px var(--blood); }
+        .cell.error { background: #400; animation: shake 0.3s; }
+        .cell.correct { color: #0f0; text-shadow: 0 0 5px #0f0; }
+
+        /* CLAVIER */
+        #keypad {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+            width: 100%; margin-top: 20px;
+        }
+        .key {
+            background: #111; border: 1px solid #333; color: #aaa;
+            padding: 15px 0; text-align: center; font-size: 1.2rem;
+            border-radius: 4px; cursor: pointer;
+        }
+        .key:active { background: #eee; color: #000; transform: scale(0.95); }
+
+        /* INTRO SCREEN */
+        #intro-screen {
+            position: fixed; inset: 0; background: #000; z-index: 2000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 20px;
+        }
+        .fade-in { animation: fadeIn 2s forwards; opacity: 0; }
+        @keyframes fadeIn { to { opacity: 1; } }
         @keyframes shake { 0%, 100% {transform:translateX(0)} 25% {transform:translateX(-5px)} 75% {transform:translateX(5px)} }
 
-        .keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 95%; max-width: 380px; }
-        .key { background: #0a0a0a; border: 1px solid #222; color: #666; padding: 18px 0; font-size: 1.4rem; border-radius: 4px; text-align: center; }
-        .key:active { background: var(--blood); color: #fff; }
-
-        /* START SCREEN */
-        #menu { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #start-btn { background: none; border: 1px solid var(--blood); color: var(--blood); padding: 15px 40px; font-size: 1.2rem; cursor: pointer; margin-top: 30px; letter-spacing: 3px; }
-        #name-in { background: none; border: none; border-bottom: 2px solid #333; color: #fff; font-size: 1.5rem; text-align: center; outline: none; }
+        button.start {
+            margin-top: 30px; background: transparent; border: 1px solid var(--blood);
+            color: var(--blood); padding: 15px 30px; font-family: inherit; font-size: 1.2rem;
+            cursor: pointer; letter-spacing: 2px; transition: 0.3s;
+        }
+        button.start:hover { background: var(--blood); color: #000; box-shadow: 0 0 20px var(--blood); }
     </style>
 </head>
 <body>
 
+<div id="noise"></div>
 <div id="vignette"></div>
 
-<div id="menu">
-    <h1 style="color:var(--blood); letter-spacing: 5px;">SUDOKU OR DIE</h1>
-    <input type="text" id="name-in" placeholder="TON NOM..." maxlength="12">
-    <button id="start-btn" onclick="boot()">OFFRIR MON ÂME</button>
+<div id="intro-screen">
+    <div id="intro-text" style="max-width: 600px;"></div>
+    <button id="btn-start" class="start" style="display:none" onclick="startGame()">OUVRIR LES YEUX</button>
 </div>
 
-<div id="dialogue-zone"><div id="text-content">...</div></div>
-<div class="timer-wrap"><div id="timer-bar"></div></div>
-<div id="grid"></div>
-<div class="keys">
-    <script>for(let i=1; i<=9; i++) document.write(`<div class="key" onclick="hit(${i})">${i}</div>`);</script>
-    <div class="key" onclick="hit(0)" style="color:var(--blood)">X</div>
+<div id="ui-layer">
+    <div class="status-bar">
+        <span>NIVEAU <span id="lvl-disp">1</span>/100</span>
+        <span style="color:var(--blood)">SURVIE</span>
+    </div>
+    <div class="stress-container"><div id="stress-bar"></div></div>
+    
+    <div id="demon-eye">"Montre-moi ce que tu vaux..."</div>
+
+    <div id="grid"></div>
+
+    <div id="keypad">
+        <div class="key" onclick="input(1)">1</div>
+        <div class="key" onclick="input(2)">2</div>
+        <div class="key" onclick="input(3)">3</div>
+        <div class="key" onclick="input(4)">4</div>
+        <div class="key" onclick="input(5)">5</div>
+        <div class="key" onclick="input(6)">6</div>
+        <div class="key" onclick="input(7)">7</div>
+        <div class="key" onclick="input(8)">8</div>
+        <div class="key" onclick="input(9)">9</div>
+        <div class="key" onclick="input('X')" style="color:var(--blood)">X</div>
+    </div>
 </div>
 
 <script>
-    let pName = "";
-    let cur = null;
-    let threat = 0;
-    let level = 1;
-    let active = false;
-    let speechLock = false;
-    let sol = [];
-
-    // --- DIALOGUES ---
-    const reactions = {
-        intro: ["Bienvenue [N], j'espère que tu ne vas pas mourir trop vite...", "Tiens tiens, une nouvelle proie nommée [N].", "Prépare-toi à souffrir, [N]."],
-        error: ["Tu ne sais pas jouer mon petit [N] ?", "Bah alors [N], on pue la merde à ce point ?", "Encore une erreur ? Hahaha continue comme ça j'adore, [N].", "Tu veux que je te mange tout de suite, [N] ?", "Même un cadavre jouerait mieux que toi, [N]."],
-        idle: ["Bah quoi, tu trembles déjà de peur [N] ?", "Alors [N], on est perdu dans ses chiffres ?", "Le temps presse, [N]. Ma faim aussi.", "Je te regarde galérer, [N], c'est un délice."],
-        win: ["Putain tu as passé le niveau [L], tu as eu de la chance [N].", "Ne t'habitue pas à gagner, [N].", "Le niveau suivant va te broyer, [N]."],
-        desperate: ["J'ai faim... perd s'il te plaît que je puisse te manger, [N].", "Laisse-toi aller, [N]. La mort est si proche.", "Ta sueur a un goût exquis, [N]."]
+    // --- VARIABLES GLOBALES ---
+    const STATE = {
+        level: 1,
+        stress: 0,
+        grid: [],
+        solution: [],
+        selectedCell: null,
+        active: false,
+        name: "Mortel"
     };
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    function boot() {
-        pName = document.getElementById('name-in').value || "Mortel";
-        document.getElementById('menu').style.display = 'none';
-        active = true;
-        audioCtx.resume();
-        setup();
-        loop();
-        heartbeat();
-        say('intro');
-    }
-
-    // --- AUDIO DESIGN ---
-    function playSfx(freq, type, dur, vol) {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        g.gain.setValueAtTime(vol, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-        osc.connect(g);
-        g.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + dur);
-    }
-
-    function heartbeat() {
-        if(!active) return;
-        // Son de respiration + Tic Tac
-        playSfx(60, 'sine', 0.1, 0.5); // Kick (Cœur)
-        setTimeout(() => playSfx(40, 'sine', 0.1, 0.3), 200); 
-        playSfx(1000, 'square', 0.01, 0.05); // Tic-Tac horloge
+    // --- AUDIO ENGINE (Web Audio API) ---
+    const AudioEngine = {
+        ctx: null,
+        droneOsc: null,
+        droneGain: null,
         
-        let speed = Math.max(300, 1200 - (threat * 8));
-        setTimeout(heartbeat, speed);
-    }
+        init: function() {
+            window.AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            
+            // Création du bourdonnement d'ambiance (Drone)
+            this.droneOsc = this.ctx.createOscillator();
+            this.droneGain = this.ctx.createGain();
+            this.droneOsc.type = 'sawtooth';
+            this.droneOsc.frequency.value = 40; // Très grave
+            
+            // Filtre passe-bas pour étouffer le son
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 120;
 
-    function setup() {
-        const g = document.getElementById('grid'); g.innerHTML = '';
-        let base = "534678912672195348198342567859761423426853791713924856961537284287419635345286179".split('');
-        sol = base;
-        let fill = Math.max(78 - (level * 10), 10);
-        for(let i=0; i<81; i++) {
-            let t = document.createElement('div');
-            t.className = 'tile';
-            if(Math.random() * 81 < fill) { t.innerText = sol[i]; t.classList.add('fixed'); }
-            t.onclick = () => { if(!t.classList.contains('fixed')) { if(cur) cur.classList.remove('selected'); cur = t; t.classList.add('selected'); playSfx(200, 'triangle', 0.05, 0.1); } };
-            g.appendChild(t);
+            this.droneOsc.connect(filter);
+            filter.connect(this.droneGain);
+            this.droneGain.connect(this.ctx.destination);
+            
+            this.droneGain.gain.value = 0; // Volume départ
+            this.droneOsc.start();
+        },
+
+        startAmbience: function() {
+            this.droneGain.gain.setTargetAtTime(0.15, this.ctx.currentTime, 2);
+        },
+
+        updateStress: function(stressLevel) {
+            // Le son devient plus aigu et fort avec le stress
+            let freq = 40 + (stressLevel * 0.5); 
+            let vol = 0.15 + (stressLevel / 300);
+            this.droneOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.5);
+            this.droneGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.5);
+        },
+
+        playPenSound: function() {
+            // Bruit de clic de stylo sec
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.05);
+            
+            gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.05);
+        },
+
+        playError: function() {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.3);
+        },
+
+        playWin: function() {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 1);
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 1);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 1);
         }
+    };
+
+    // --- DIALOGUES DU DÉMON ---
+    const SPEECH = {
+        lastSpeakTime: 0,
+        
+        speak: function(text, force = false) {
+            let now = Date.now();
+            if (!force && now - this.lastSpeakTime < 4000) return; // Anti-spam
+            
+            this.lastSpeakTime = now;
+            
+            // Affichage visuel
+            const ui = document.getElementById('demon-eye');
+            ui.innerText = text;
+            ui.style.animation = "none";
+            ui.offsetHeight; /* trigger reflow */
+            ui.style.animation = "shake 0.5s";
+
+            // Synthèse vocale
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR';
+            utterance.pitch = 0.1; // Le plus grave possible
+            utterance.rate = 0.7;  // Lent
+            utterance.volume = 1;
+
+            // Essayer de trouver une voix française
+            let voices = window.speechSynthesis.getVoices();
+            let frVoice = voices.find(v => v.lang.includes('fr'));
+            if(frVoice) utterance.voice = frVoice;
+
+            window.speechSynthesis.speak(utterance);
+        },
+
+        lines: {
+            idle: ["Je m'ennuie...", "Ta peur sent le miel.", "Tic, tac. Tic, tac.", "Tu respires trop fort.", "Concentre-toi, viande.", "100 niveaux... tu n'y arriveras jamais."],
+            error: ["Idiot !", "Tu ne sais pas compter ?", "Encore raté.", "J'ai faim...", "Tu me déçois.", "Regarde ce que tu fais !", "Pathétique."],
+            good: ["Pas mal.", "Chanceux.", "Continue.", "Hmpf.", "Ne t'arrête pas."],
+            panic: ["Ta main tremble.", "La mort approche.", "Abandonne.", "Laisse-toi faire."]
+        }
+    };
+
+    // --- SUDOKU LOGIC (BACKTRACKING) ---
+    const Sudoku = {
+        generate: function(difficulty) {
+            let board = Array(81).fill(0);
+            this.solveHelper(board);
+            let solution = [...board];
+            
+            // Retirer des chiffres (trous)
+            let attempts = difficulty; 
+            while (attempts > 0) {
+                let idx = Math.floor(Math.random() * 81);
+                if (board[idx] !== 0) {
+                    board[idx] = 0;
+                    attempts--;
+                }
+            }
+            return { puzzle: board, solution: solution };
+        },
+
+        solveHelper: function(board) {
+            for (let i = 0; i < 81; i++) {
+                if (board[i] === 0) {
+                    let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+                    for (let n of nums) {
+                        if (this.isValid(board, i, n)) {
+                            board[i] = n;
+                            if (this.solveHelper(board)) return true;
+                            board[i] = 0;
+                        }
+                    }
+                    return false;
+                }
+            }
+            return true;
+        },
+
+        isValid: function(board, idx, num) {
+            let row = Math.floor(idx / 9);
+            let col = idx % 9;
+            let blockRow = Math.floor(row / 3) * 3;
+            let blockCol = Math.floor(col / 3) * 3;
+
+            for (let i = 0; i < 9; i++) {
+                if (board[row * 9 + i] === num) return false; // Ligne
+                if (board[i * 9 + col] === num) return false; // Colonne
+                let curBlock = (blockRow + Math.floor(i / 3)) * 9 + (blockCol + (i % 3));
+                if (board[curBlock] === num) return false; // Carré
+            }
+            return true;
+        }
+    };
+
+    // --- GAME LOOP ---
+    async function introSequence() {
+        const txtDiv = document.getElementById('intro-text');
+        const lines = [
+            "Réveille-toi...",
+            "Tu es dans ma pièce maintenant.",
+            "Face à toi, une grille.",
+            "Résous 100 niveaux et je te libère.",
+            "Échoue...",
+            "Et je dévore ton âme."
+        ];
+
+        for (let line of lines) {
+            txtDiv.innerHTML = `<h2 class="fade-in" style="color:#fff">${line}</h2>`;
+            await new Promise(r => setTimeout(r, 2500));
+        }
+        
+        document.getElementById('btn-start').style.display = 'inline-block';
     }
 
-    function hit(n) {
-        if(!cur || !active) return;
-        let idx = Array.from(document.getElementById('grid').children).indexOf(cur);
-        if(n === 0) { cur.innerText = ""; return; }
+    function startGame() {
+        AudioEngine.init();
+        AudioEngine.startAmbience();
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('ui-layer').style.display = 'flex';
+        STATE.active = true;
+        newLevel();
+        gameLoop();
+    }
+
+    function newLevel() {
+        STATE.stress = Math.max(0, STATE.stress - 20); // Bonus répit
         
-        cur.innerText = n;
-        if(n != sol[idx]) {
-            cur.classList.add('err');
-            threat += 12;
-            playSfx(100, 'sawtooth', 0.3, 0.2); // Son erreur
-            say('error');
-            setTimeout(() => cur.classList.remove('err'), 300);
+        // Difficulté croissante (trous à remplir)
+        let holes = 20 + Math.floor(STATE.level / 2); 
+        if(holes > 55) holes = 55;
+
+        let data = Sudoku.generate(holes);
+        STATE.grid = data.puzzle;
+        STATE.solution = data.solution;
+        
+        renderGrid();
+        document.getElementById('lvl-disp').innerText = STATE.level;
+        SPEECH.speak("Niveau " + STATE.level + ". Commence.");
+    }
+
+    function renderGrid() {
+        const gridEl = document.getElementById('grid');
+        gridEl.innerHTML = '';
+        STATE.grid.forEach((val, idx) => {
+            let div = document.createElement('div');
+            div.className = 'cell';
+            if(val !== 0) {
+                div.innerText = val;
+                div.classList.add('fixed');
+            } else {
+                div.onclick = () => selectCell(div, idx);
+            }
+            gridEl.appendChild(div);
+        });
+        STATE.selectedCell = null;
+    }
+
+    function selectCell(div, idx) {
+        if (!STATE.active) return;
+        // Retirer sélection précédente
+        document.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
+        div.classList.add('selected');
+        STATE.selectedIdx = idx;
+        
+        // Bruit léger de focus
+        // (Optionnel, gardons le silence pour la tension)
+    }
+
+    function input(val) {
+        if (STATE.selectedIdx === null || !STATE.active) return;
+        
+        let idx = STATE.selectedIdx;
+        let cell = document.getElementById('grid').children[idx];
+
+        if (val === 'X') {
+            cell.innerText = '';
+            STATE.grid[idx] = 0;
+            return;
+        }
+
+        // SFX Stylo
+        AudioEngine.playPenSound();
+
+        // Vérification immédiate
+        if (val === STATE.solution[idx]) {
+            cell.innerText = val;
+            cell.style.color = "#0f0"; // Petit feedback visuel rapide
+            STATE.grid[idx] = val;
+            checkWin();
         } else {
-            cur.style.color = "#0f0";
-            playSfx(800, 'sine', 0.05, 0.1); // Son correct
-            check();
+            // ERREUR
+            AudioEngine.playError();
+            STATE.stress += 15;
+            cell.classList.add('error');
+            setTimeout(() => cell.classList.remove('error'), 400);
+            
+            let badLines = SPEECH.lines.error;
+            SPEECH.speak(badLines[Math.floor(Math.random() * badLines.length)], true);
         }
     }
 
-    function say(type) {
-        if(speechLock) return;
-        speechLock = true;
-        let list = reactions[type];
-        let t = list[Math.floor(Math.random()*list.length)]
-            .replace("[N]", pName).replace("[L]", level);
-        
-        document.getElementById('text-content').innerText = t;
-        
-        window.speechSynthesis.cancel();
-        let m = new SpeechSynthesisUtterance(t);
-        m.lang = 'fr-FR'; m.pitch = 0.1; m.rate = 0.8;
-        window.speechSynthesis.speak(m);
-        
-        setTimeout(() => { speechLock = false; }, 3000); // Pause de 3s forcée
-    }
-
-    function loop() {
-        if(!active) return;
-        threat += (0.15 * level);
-        document.getElementById('timer-bar').style.width = threat + "%";
-
-        if(Math.random() < 0.01) say(threat > 70 ? 'desperate' : 'idle');
-
-        if(threat >= 100) die();
-        else setTimeout(loop, 100);
-    }
-
-    function check() {
-        let tiles = document.querySelectorAll('.tile');
-        let win = true;
-        tiles.forEach((t, i) => { if(t.innerText != sol[i]) win = false; });
-        if(win) {
-            say('win');
-            level++; threat = Math.max(0, threat - 50);
-            setTimeout(setup, 2000);
+    function checkWin() {
+        // Est-ce que la grille est pleine et correcte ?
+        // Comme on vérifie à chaque input, il suffit de voir s'il reste des 0
+        if (!STATE.grid.includes(0)) {
+            AudioEngine.playWin();
+            STATE.level++;
+            if (STATE.level > 100) {
+                winGame();
+            } else {
+                let goodLines = SPEECH.lines.good;
+                SPEECH.speak(goodLines[Math.floor(Math.random() * goodLines.length)]);
+                setTimeout(newLevel, 1000);
+            }
         }
     }
 
-    function die() {
-        active = false;
-        playSfx(40, 'sawtooth', 2, 0.5);
-        document.body.innerHTML = `<h1 style="color:red; margin-top:40vh; text-align:center; font-size:1.2rem;">${pName.toUpperCase()} A ÉTÉ DÉVORÉ</h1>`;
-        let m = new SpeechSynthesisUtterance("Enfin... tu es délicieux " + pName);
-        m.pitch = 0.1; window.speechSynthesis.speak(m);
-        setTimeout(() => location.reload(), 5000);
+    function gameLoop() {
+        if (!STATE.active) return;
+
+        // Augmentation stress
+        // Plus le niveau est haut, plus le stress monte vite
+        let speed = 0.05 + (STATE.level * 0.005);
+        STATE.stress += speed;
+
+        // Mise à jour visuelle et audio
+        document.getElementById('stress-bar').style.width = Math.min(100, STATE.stress) + "%";
+        AudioEngine.updateStress(STATE.stress);
+
+        // Vignette rouge
+        let vign = document.getElementById('vignette');
+        vign.style.boxShadow = `inset 0 0 ${STATE.stress * 2}px var(--blood)`;
+
+        // Dialogues aléatoires (idle)
+        if (Math.random() < 0.005) {
+            let list = STATE.stress > 80 ? SPEECH.lines.panic : SPEECH.lines.idle;
+            SPEECH.speak(list[Math.floor(Math.random() * list.length)]);
+        }
+
+        if (STATE.stress >= 100) {
+            gameOver();
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
     }
+
+    function gameOver() {
+        STATE.active = false;
+        AudioEngine.playError(); // Long bruit
+        SPEECH.speak("Ton temps est écoulé. Adieu.", true);
+        document.body.innerHTML = `
+            <div style="text-align:center; color:red;">
+                <h1>TU ES MORT</h1>
+                <p>Niveau atteint : ${STATE.level}</p>
+                <button onclick="location.reload()" style="background:#300; color:#fff; border:none; padding:10px 20px; margin-top:20px;">RESSUSCITER</button>
+            </div>
+        `;
+        document.body.style.background = "#200";
+    }
+
+    function winGame() {
+        STATE.active = false;
+        document.body.innerHTML = `
+            <div style="text-align:center; color:#fff;">
+                <h1>LIBRE...</h1>
+                <p>Tu as vaincu le démon.</p>
+            </div>
+        `;
+    }
+
+    // Lancement intro
+    window.onload = introSequence;
+
 </script>
 </body>
 </html>
