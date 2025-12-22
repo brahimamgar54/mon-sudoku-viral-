@@ -3,158 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SUDOKU OR DIE: JUDGMENT</title>
+    <title>SUDOKU: SUFFERING</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
         :root {
-            --bg: #050505;
-            --blood: #8a0b0b;
-            --text: #a0a0a0;
-            --bone: #e0e0e0;
+            --bg: #000000;
+            --blood: #ff0000;
+            --dark-blood: #4a0000;
+            --terminal: #a0a0a0;
         }
 
-        * { user-select: none; box-sizing: border-box; touch-action: none; -webkit-tap-highlight-color: transparent; }
-        
         body {
             background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Courier Prime', monospace;
+            color: var(--terminal);
+            font-family: 'VT323', monospace;
             margin: 0; height: 100vh; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-transform: uppercase;
         }
 
-        /* --- AMBIANCE --- */
-        #noise {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABZJREFUeNpi2r9//38gYGAEESAAEGAAasgJOgzOKCoAAAAASUVORK5CYII=');
-            opacity: 0.08; pointer-events: none; z-index: 999;
+        /* --- CRT EFFECT & SCANLINES --- */
+        body::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 998; background-size: 100% 2px, 3px 100%; pointer-events: none;
         }
-        #vignette {
-            position: fixed; inset: 0;
-            background: radial-gradient(circle, transparent 40%, #000 100%);
-            pointer-events: none; z-index: 900;
-            transition: box-shadow 1s ease-out; /* Transition douce pour l'effet calmant */
+        .scanline {
+            width: 100%; height: 100px; z-index: 999; background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(255, 0, 0, 0.1) 50%, rgba(0,0,0,0) 100%);
+            opacity: 0.1; position: absolute; bottom: 100%; animation: scanline 10s linear infinite; pointer-events: none;
         }
+        @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100%; } }
+
+        /* --- GLITCH TEXT --- */
+        .glitch { position: relative; color: var(--blood); font-size: 2rem; animation: glitch-skew 1s infinite linear alternate-reverse; }
+        .glitch::before, .glitch::after {
+            content: attr(data-text); position: absolute; left: 0; width: 100%; height: 100%;
+        }
+        .glitch::before { left: 2px; text-shadow: -2px 0 #ff00c1; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim 5s infinite linear alternate-reverse; }
+        .glitch::after { left: -2px; text-shadow: -2px 0 #00fff9; clip: rect(44px, 450px, 56px, 0); animation: glitch-anim2 1s infinite linear alternate-reverse; }
+        @keyframes glitch-skew { 0% { transform: skew(0deg); } 10% { transform: skew(5deg); } 20% { transform: skew(-5deg); } 100% { transform: skew(0deg); } }
+
+        /* --- START BUTTON --- */
+        #start-overlay {
+            position: fixed; inset: 0; background: #000; z-index: 5000;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .btn-blood {
+            background: #000; border: 2px solid var(--blood); color: var(--blood);
+            font-family: 'VT323'; font-size: 2rem; padding: 20px 50px; cursor: pointer;
+            text-shadow: 0 0 10px var(--blood); box-shadow: 0 0 20px var(--dark-blood);
+            transition: 0.2s; animation: pulse 2s infinite;
+        }
+        .btn-blood:hover { background: var(--blood); color: #000; }
 
         /* --- UI JEU --- */
-        #ui-layer { 
-            display: none; width: 100%; max-width: 450px; height: 100%; 
-            flex-direction: column; align-items: center; padding: 10px; z-index: 10;
+        #ui-layer { display: none; width: 100%; max-width: 500px; flex-direction: column; align-items: center; z-index: 10; padding: 10px; }
+        
+        #demon-box {
+            min-height: 80px; width: 100%; text-align: center; border: 1px solid #333;
+            background: #050505; color: var(--blood); padding: 10px; margin-bottom: 20px;
+            font-size: 1.4rem; display: flex; align-items: center; justify-content: center;
+            text-shadow: 0 0 5px var(--blood); box-shadow: inset 0 0 30px #000;
         }
 
-        #demon-eye {
-            width: 100%; text-align: center; margin-bottom: 10px;
-            font-size: 0.9rem; color: var(--blood); text-shadow: 0 0 5px var(--blood);
-            min-height: 70px; display: flex; align-items: center; justify-content: center;
-            border-bottom: 1px solid #333; padding-bottom: 10px;
-            transition: color 0.3s;
-        }
+        #stress-bar-container { width: 100%; height: 10px; background: #222; margin-bottom: 20px; border: 1px solid #444; }
+        #stress-bar { width: 0%; height: 100%; background: var(--blood); box-shadow: 0 0 15px var(--blood); transition: width 0.2s; }
 
-        .status-bar {
-            width: 100%; display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.8rem; letter-spacing: 1px;
-        }
-        .stress-container {
-            width: 100%; height: 6px; background: #111; margin-bottom: 15px; position: relative; border: 1px solid #333;
-        }
-        #stress-bar {
-            width: 0%; height: 100%; background: var(--blood);
-            transition: width 0.1s linear, background-color 0.5s;
-            box-shadow: 0 0 10px var(--blood);
-        }
-
-        /* --- GRILLE --- */
         #grid {
-            display: grid; grid-template-columns: repeat(9, 1fr);
-            gap: 1px; background: #333; border: 2px solid #555;
-            width: 100%; aspect-ratio: 1; margin-bottom: 10px;
+            display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px;
+            background: #444; border: 4px solid #222; width: 100%; aspect-ratio: 1; margin-bottom: 20px;
         }
         .cell {
-            background: #080808; display: flex; align-items: center; justify-content: center;
-            font-size: 1.3rem; color: #fff; cursor: pointer; transition: background 0.1s;
+            background: #000; display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; color: #aaa; cursor: pointer; transition: 0.1s;
         }
-        .cell:nth-child(3n) { border-right: 2px solid #555; }
-        .cell:nth-child(9n) { border-right: none; }
-        .cell:nth-child(n+19):nth-child(-n+27), 
-        .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #555; }
-
-        .cell.fixed { color: #444; background: #050505; pointer-events: none; }
-        .cell.selected { background: #1a1a1a; box-shadow: inset 0 0 15px #300; }
-        .cell.error { background: #500; animation: shake 0.3s; }
-        .cell.correct { color: #0f0; text-shadow: 0 0 8px #0f0; animation: pop 0.2s; }
-
-        /* --- CLAVIER --- */
-        #keypad {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
-            width: 100%; flex-grow: 1; max-height: 150px;
-        }
+        .cell.fixed { color: #444; background: #080808; pointer-events: none; }
+        .cell.selected { background: #200; box-shadow: inset 0 0 20px var(--blood); color: #fff; }
+        .cell.error { background: var(--blood); color: #000; animation: shake 0.4s; }
+        
+        #keypad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: 100%; }
         .key {
-            background: #111; border: 1px solid #333; color: #888;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; border-radius: 2px; cursor: pointer;
+            background: #111; border: 1px solid #444; color: #fff; height: 50px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer;
         }
-        .key:active { background: #333; color: #fff; transform: scale(0.95); }
+        .key:active { background: var(--blood); }
 
-        /* --- INTRO & NAME INPUT --- */
-        #intro-screen {
-            position: fixed; inset: 0; background: #000; z-index: 2000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 20px;
+        /* --- CINEMATICS --- */
+        #cinematic-overlay {
+            display: none; position: fixed; inset: 0; background: #000; z-index: 4000;
+            flex-direction: column; align-items: center; justify-content: center; padding: 40px;
+            pointer-events: none;
         }
+        #cinematic-text {
+            color: var(--blood); font-size: 1.5rem; text-align: left; white-space: pre-wrap;
+            line-height: 1.5; text-shadow: 0 0 4px var(--blood); border-left: 2px solid var(--blood);
+            padding-left: 20px; max-width: 800px;
+        }
+
+        @keyframes pulse { 0% {opacity:1} 50% {opacity:0.5} 100% {opacity:1} }
+        @keyframes shake { 0% {transform:translate(0,0)} 25% {transform:translate(-5px, 5px)} 75% {transform:translate(5px, -5px)} 100% {transform:translate(0,0)} }
         
-        input[type="text"] {
-            background: transparent; border: none; border-bottom: 2px solid var(--blood);
-            color: #fff; font-family: 'Courier Prime', monospace; font-size: 1.5rem;
-            text-align: center; width: 200px; margin: 20px 0; outline: none;
-        }
-        
-        .fade-in { animation: fadeIn 2s forwards; opacity: 0; }
-        @keyframes fadeIn { to { opacity: 1; } }
-        @keyframes shake { 0%, 100% {transform:translateX(0)} 25% {transform:translateX(-5px)} 75% {transform:translateX(5px)} }
-        @keyframes pop { 0% {transform:scale(1)} 50% {transform:scale(1.3)} 100% {transform:scale(1)} }
-
-        button.start {
-            margin-top: 20px; background: #100; border: 1px solid var(--blood);
-            color: var(--blood); padding: 15px 40px; font-family: inherit; font-size: 1.2rem;
-            cursor: pointer; letter-spacing: 2px; transition: 0.3s;
-        }
-        button.start:hover { background: var(--blood); color: #000; box-shadow: 0 0 30px var(--blood); }
-
-        /* --- GAME OVER --- */
-        #game-over {
-            display: none; position: fixed; inset: 0; background: #000; z-index: 3000;
-            flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; padding: 20px;
-        }
-        #death-desc {
-            max-width: 600px; font-size: 1.1rem; color: var(--bone); line-height: 1.5; margin: 20px 0;
-            border-left: 3px solid var(--blood); padding-left: 15px; text-align: left;
-        }
+        .screen-shake { animation: shake 0.5s infinite; }
+        .red-flash { animation: flashRed 0.2s; }
+        @keyframes flashRed { 0% {background:rgba(255,0,0,0.5)} 100% {background:transparent} }
 
     </style>
 </head>
 <body>
 
-<div id="noise"></div>
-<div id="vignette"></div>
+<div class="scanline"></div>
 
-<div id="intro-screen">
-    <div id="intro-content"></div>
-    <div id="name-input-section" style="display:none; flex-direction: column; align-items: center;">
-        <p style="color:#888; font-size:0.9rem;">TON NOM, ÂME PERDUE ?</p>
-        <input type="text" id="player-name" maxlength="10" placeholder="..." autocomplete="off">
-        <button class="start" onclick="validateName()">ENTRER</button>
-    </div>
+<div id="start-overlay">
+    <h1 class="glitch" data-text="SUDOKU: PURGATOIRE" style="margin-bottom: 50px; font-size: 4rem;">SUDOKU: PURGATOIRE</h1>
+    <button class="btn-blood" onclick="initSystem()">LANCER LE RITUEL</button>
+    <p style="margin-top: 20px; color: #444; font-size: 0.9rem;">CASQUE REQUIS. LE VOLUME DOIT ÊTRE ÉLEVÉ.</p>
+</div>
+
+<div id="cinematic-overlay">
+    <div id="cinematic-text"></div>
+    <button id="retry-btn" class="btn-blood" style="display:none; margin-top:30px;" onclick="location.reload()">OFFRIR UNE AUTRE ÂME</button>
 </div>
 
 <div id="ui-layer">
-    <div class="status-bar">
-        <span>NIVEAU <span id="lvl-disp">1</span></span>
-        <span id="player-disp" style="color:#666">MORTEL</span>
+    <div style="width:100%; display:flex; justify-content:space-between; margin-bottom:5px; color:#555;">
+        <span>NIVEAU: <span id="lvl" style="color:#fff">1</span></span>
+        <span>VICTIME: <span id="player-name">...</span></span>
     </div>
-    <div class="stress-container"><div id="stress-bar"></div></div>
+    <div id="stress-bar-container"><div id="stress-bar"></div></div>
     
-    <div id="demon-eye">"Ne me fais pas attendre..."</div>
+    <div id="demon-box">INITIALISATION DU SUPPLICE...</div>
 
     <div id="grid"></div>
 
@@ -168,204 +146,347 @@
         <div class="key" onclick="input(7)">7</div>
         <div class="key" onclick="input(8)">8</div>
         <div class="key" onclick="input(9)">9</div>
-        <div class="key" onclick="input('X')" style="color:var(--blood); border-color:var(--blood)">X</div>
+        <div class="key" onclick="input('X')" style="color:red; border:1px solid red">X</div>
     </div>
 </div>
 
-<div id="game-over">
-    <h1 style="color:var(--blood); font-size:2.5rem; margin:0; text-shadow: 0 0 20px var(--blood)">FATALITÉ</h1>
-    <div id="death-desc"></div>
-    <button class="start" onclick="location.reload()">RENAÎTRE</button>
-</div>
-
 <script>
-    // --- STATE MANAGER ---
-    const STATE = {
-        name: localStorage.getItem('sudoku_demon_name') || "",
-        hasPlayed: localStorage.getItem('sudoku_demon_played') === "true",
+    // --- VARIABLES GLOBALES ---
+    const GAME = {
         level: 1,
         stress: 0,
-        grid: [],
-        solution: [],
-        selectedIdx: null,
         active: false,
-        lastActionTime: Date.now()
+        grid: [],
+        sol: [],
+        sel: null,
+        name: "ANONYME",
+        timer: 0
     };
 
-    // --- AUDIO ENGINE ---
-    const AudioEngine = {
+    // --- MOTEUR AUDIO HORRIFIQUE ---
+    const AUDIO = {
         ctx: null,
-        droneOsc: null,
-        droneGain: null,
-        
+        ambience: null,
+        voiceDrone: null,
+
         init: function() {
-            window.AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioContext();
+            const AC = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AC();
             
-            // Drone d'ambiance (Sawtooth pour le coté agressif)
-            this.droneOsc = this.ctx.createOscillator();
-            this.droneGain = this.ctx.createGain();
-            this.droneOsc.type = 'sawtooth';
-            this.droneOsc.frequency.value = 40;
+            // Bruit de fond industriel/oppressant
+            this.createAmbience();
+        },
+
+        createAmbience: function() {
+            // Création d'un drone "Brown Noise" simulé pour le fond
+            const bufferSize = 2 * this.ctx.sampleRate;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                data[i] = (0 + (0.1 * white)) * 0.5; // Simple noise
+            }
+
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            noise.loop = true;
             
+            // Filtre passe-bas pour ne garder que les graves (grondement)
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'lowpass';
-            filter.frequency.value = 100;
-
-            this.droneOsc.connect(filter);
-            filter.connect(this.droneGain);
-            this.droneGain.connect(this.ctx.destination);
+            filter.frequency.value = 150;
             
-            this.droneGain.gain.value = 0;
-            this.droneOsc.start();
+            const gain = this.ctx.createGain();
+            gain.gain.value = 0.5;
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start();
+            this.ambience = { node: filter, gain: gain };
         },
 
-        startAmbience: function() {
-            if(this.ctx.state === 'suspended') this.ctx.resume();
-            this.droneGain.gain.setTargetAtTime(0.2, this.ctx.currentTime, 3);
+        stressUp: function(val) {
+            // Plus le stress monte, plus le son sature et monte en fréquence
+            if(this.ambience) {
+                this.ambience.node.frequency.setTargetAtTime(150 + (val * 3), this.ctx.currentTime, 1);
+                this.ambience.gain.gain.setTargetAtTime(0.5 + (val/150), this.ctx.currentTime, 1);
+            }
         },
 
-        updateStress: function(stress) {
-            // Si stress 0, le son est très grave et faible (calme avant la tempête)
-            let targetFreq = 40 + (stress * 1.5);
-            let targetVol = 0.1 + (stress / 150);
-            
-            // Tremblement du son si stress > 70
-            let wobble = stress > 70 ? Math.random() * 10 : 0;
-            
-            this.droneOsc.frequency.setTargetAtTime(targetFreq + wobble, this.ctx.currentTime, 0.5);
-            this.droneGain.gain.setTargetAtTime(targetVol, this.ctx.currentTime, 0.5);
-        },
-
-        sfxClick: function() {
-            const t = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            osc.frequency.setValueAtTime(800, t);
-            osc.frequency.exponentialRampToValueAtTime(100, t + 0.05);
-            g.gain.setValueAtTime(0.1, t);
-            g.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
-            osc.connect(g); g.connect(this.ctx.destination);
-            osc.start(); osc.stop(t + 0.06);
-        },
-
-        sfxError: function() {
-            const t = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(100, t);
-            osc.frequency.linearRampToValueAtTime(40, t + 0.3);
-            g.gain.setValueAtTime(0.3, t);
-            g.gain.linearRampToValueAtTime(0, t + 0.3);
-            osc.connect(g); g.connect(this.ctx.destination);
-            osc.start(); osc.stop(t + 0.3);
-        },
-
-        sfxWin: function() {
-            // Un son éthéré pour le soulagement
-            const t = this.ctx.currentTime;
-            const osc = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(200, t);
-            osc.frequency.linearRampToValueAtTime(600, t + 1);
-            g.gain.setValueAtTime(0.2, t);
-            g.gain.linearRampToValueAtTime(0, t + 1.5);
-            osc.connect(g); g.connect(this.ctx.destination);
-            osc.start(); osc.stop(t + 1.5);
-        }
-    };
-
-    // --- DEMON AI ---
-    const DEMON = {
-        lastSpeech: 0,
-        
-        // Liste des morts horribles
-        deathScenarios: [
-            "Je t'attrape par les cheveux. Ma mâchoire s'ouvre démesurément et se referme sur ton cou dans un craquement humide. Je détache ta tête et la lance à ma progéniture affamée qui grouille dans l'ombre.",
-            "Je plonge ma main griffue dans ta poitrine. Je sens ton cœur battre contre ma paume avant de l'arracher d'un coup sec. Tu me regardes le dévorer alors que la lumière quitte tes yeux.",
-            "Des chaînes surgissent du sol et te brisent les os, un par un. Je te laisse là, masse de chair informe et gémissante, sur cette chaise froide pour l'éternité.",
-            "Je t'attrape les épaules et verse du plomb en fusion dans tes orbites. Tes cris sont une douce mélodie. L'obscurité sera désormais ta seule compagne.",
-            "Je t'ouvre le ventre avec mon ongle. Tes entrailles se déversent sur le sol du purgatoire. Je t'oblige à les ramasser avant que tu ne t'effondres."
-        ],
-
-        say: function(text, force = false, anger = 0) {
-            let now = Date.now();
-            if (!force && now - this.lastSpeech < 4000) return;
-            this.lastSpeech = now;
-
-            let finalTxt = text.replace("{name}", STATE.name || "Mortel");
-
-            // UI
-            const el = document.getElementById('demon-eye');
-            el.innerText = finalTxt;
-            el.style.color = anger > 0 ? "#f00" : (anger < 0 ? "#8f8" : "var(--blood)"); // Vert pale si content
-            el.style.animation = "none";
-            el.offsetHeight; 
-            el.style.animation = anger > 0 ? "shake 0.4s" : "pop 0.3s";
-
-            // TTS
+        // LA VOIX DU DEMON : TTS + Oscillateur Basse Fréquence
+        speak: function(text) {
+            // 1. Synthèse vocale navigateur (réglée très bas)
             window.speechSynthesis.cancel();
-            const utt = new SpeechSynthesisUtterance(finalTxt);
-            utt.lang = 'fr-FR';
-            // Voix grave et lente
-            utt.pitch = 0.5 + (anger * 0.2); 
-            utt.rate = 0.9;
+            const utt = new SpeechSynthesisUtterance(text);
+            utt.lang = 'fr-FR'; // Force French
+            utt.pitch = 0.1; // Le plus grave possible
+            utt.rate = 0.8;  // Lent
             utt.volume = 1;
             
-            let voices = window.speechSynthesis.getVoices();
-            let fr = voices.find(v => v.lang.includes('fr'));
-            if(fr) utt.voice = fr;
+            // Tenter de trouver une voix Google FR
+            const voices = window.speechSynthesis.getVoices();
+            const frVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('fr'));
+            if(frVoice) utt.voice = frVoice;
+
+            // 2. Grondement synchronisé (L'astuce pour l'immersion)
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.type = 'sawtooth'; // Son agressif
+            osc.frequency.setValueAtTime(45, this.ctx.currentTime); // Sub-bass
+            // Modulation de fréquence pour effet "voix instable"
+            osc.frequency.linearRampToValueAtTime(40, this.ctx.currentTime + text.length * 0.1);
+            
+            gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + (text.length * 0.08));
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            
+            osc.start();
+            osc.stop(this.ctx.currentTime + (text.length * 0.1)); // Stop quand le texte finit environ
             
             window.speechSynthesis.speak(utt);
         },
 
-        checkState: function() {
-            if(!STATE.active) return;
-            const now = Date.now();
-            
-            // Si inactif trop longtemps
-            if (now - STATE.lastActionTime > 10000) {
-                let lines = ["Je m'ennuie, {name}.", "Le temps n'est pas ton ami.", "Joue.", "Tu as peur ?"];
-                this.say(lines[Math.floor(Math.random() * lines.length)]);
-                STATE.lastActionTime = now;
-            }
+        sfx: function(type) {
+            const t = this.ctx.currentTime;
+            const o = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
+            o.connect(g); g.connect(this.ctx.destination);
 
-            // Commentaire sur le stress élevé
-            if (STATE.stress > 80 && Math.random() < 0.05) {
-                this.say("Je sens ton cœur battre...", true, 1);
+            if(type === 'hit') { // Bruit de coup/glitch
+                o.type = 'square';
+                o.frequency.setValueAtTime(100, t);
+                o.frequency.exponentialRampToValueAtTime(0.01, t + 0.1);
+                g.gain.setValueAtTime(0.5, t);
+                g.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+                o.start(); o.stop(t+0.1);
+            } else if (type === 'type') { // Bruit clavier
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(800, t);
+                g.gain.setValueAtTime(0.05, t);
+                g.gain.linearRampToValueAtTime(0, t+0.03);
+                o.start(); o.stop(t+0.03);
             }
-        },
-
-        triggerDeath: function() {
-            // Choix aléatoire d'une mort
-            let scenario = this.deathScenarios[Math.floor(Math.random() * this.deathScenarios.length)];
-            return scenario;
         }
     };
 
-    // --- SUDOKU ENGINE (Simplifié) ---
-    const Sudoku = {
-        generate: function(holes) {
-            let board = Array(81).fill(0);
-            this.fill(board);
-            let sol = [...board];
-            let attempts = holes;
-            while(attempts > 0) {
-                let i = Math.floor(Math.random()*81);
-                if(board[i]!==0) { board[i]=0; attempts--; }
+    // --- SCENARIOS GORE ---
+    const DEATHS = [
+        "SCÉNARIO #402\nSujet immobilisé.\nInjection d'acide chlorhydrique dans les veines.\nLe sujet hurle alors que ses organes fondent de l'intérieur.\nDécès confirmé par liquéfaction totale.",
+        
+        "SCÉNARIO #891\nLa mâchoire du sujet est forcée ouverte.\nInsertion d'un nid de scolopendres dans l'œsophage.\nLes insectes dévorent la trachée.\nAsphyxie lente et douloureuse.",
+        
+        "SCÉNARIO #101\nDécapitation manuelle.\nJ'arrache la tête en tirant sur la colonne vertébrale.\nLe corps convulse encore pendant 12 secondes.\nJe garde le crâne en trophée.",
+        
+        "SCÉNARIO #666\nLe sol s'ouvre.\nDes crochets rouillés transpercent la peau du dos.\nLe sujet est hissé au plafond, écorché vif sous son propre poids.\nIl pleut du sang.",
+        
+        "SCÉNARIO #012\nJ'enfonce mes pouces dans tes orbites.\nJe sens la gélatine de tes yeux céder.\nJe touche ton cerveau.\nTu ne vois plus que le néant rouge."
+    ];
+
+    // --- SYSTEME PRINCIPAL ---
+    function initSystem() {
+        document.getElementById('start-overlay').style.display = 'none';
+        AUDIO.init();
+        
+        // Input Nom "In-Game" façon terminal
+        playCinematic("IDENTIFICATION REQUISE...\n\nEntrez votre nom pour l'épitaphe :", true);
+    }
+
+    // Affiche du texte lettre par lettre (effet dactylo)
+    async function typeWriter(text, elementId, speed = 30) {
+        const el = document.getElementById(elementId);
+        el.innerHTML = "";
+        for (let i = 0; i < text.length; i++) {
+            el.innerHTML += text.charAt(i);
+            AUDIO.sfx('type');
+            if(text.charAt(i) === '\n') await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, speed));
+        }
+    }
+
+    function playCinematic(text, askName = false) {
+        const ov = document.getElementById('cinematic-overlay');
+        const txt = document.getElementById('cinematic-text');
+        const retry = document.getElementById('retry-btn');
+        
+        ov.style.display = 'flex';
+        ov.style.pointerEvents = 'auto';
+        retry.style.display = 'none';
+        
+        typeWriter(text, 'cinematic-text', 40).then(() => {
+            if(askName) {
+                // Création dynamique de l'input
+                let inp = document.createElement('input');
+                inp.type = 'text';
+                inp.style.background = 'transparent';
+                inp.style.border = 'none';
+                inp.style.borderBottom = '2px solid red';
+                inp.style.color = 'red';
+                inp.style.fontFamily = 'inherit';
+                inp.style.fontSize = '2rem';
+                inp.style.marginTop = '20px';
+                inp.style.outline = 'none';
+                inp.focus();
+                
+                txt.appendChild(document.createElement('br'));
+                txt.appendChild(inp);
+                inp.focus();
+                
+                inp.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        GAME.name = inp.value.toUpperCase() || "VIANDE";
+                        ov.style.display = 'none';
+                        document.getElementById('ui-layer').style.display = 'flex';
+                        document.getElementById('player-name').innerText = GAME.name;
+                        startGame();
+                    }
+                });
+            } else {
+                retry.style.display = 'block';
             }
-            return { p: board, s: sol };
-        },
-        fill: function(b) {
+        });
+    }
+
+    function startGame() {
+        GAME.active = true;
+        GAME.level = 1;
+        AUDIO.speak("Bienvenue en enfer, " + GAME.name);
+        startLevel();
+        gameLoop();
+    }
+
+    function startLevel() {
+        // RESET STRESS
+        GAME.stress = 0;
+        AUDIO.stressUp(0);
+        document.getElementById('stress-bar').style.width = '0%';
+        
+        // GENERATION SUDOKU
+        let holes = 10 + (GAME.level * 5); // Dur dès le début
+        if(holes > 50) holes = 50;
+        
+        let board = Array(81).fill(0);
+        fillSudoku(board);
+        GAME.sol = [...board];
+        
+        for(let i=0; i<holes; i++) board[Math.floor(Math.random()*81)] = 0;
+        GAME.grid = board;
+        
+        // RENDER
+        const g = document.getElementById('grid');
+        g.innerHTML = '';
+        GAME.grid.forEach((v, i) => {
+            let c = document.createElement('div');
+            c.className = v ? 'cell fixed' : 'cell';
+            if(v) c.innerText = v;
+            else c.onclick = () => selectCell(c, i);
+            g.appendChild(c);
+        });
+        
+        document.getElementById('lvl').innerText = GAME.level;
+    }
+
+    function selectCell(el, idx) {
+        if(!GAME.active) return;
+        document.querySelectorAll('.selected').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+        GAME.sel = idx;
+    }
+
+    function input(n) {
+        if(GAME.sel === null || !GAME.active) return;
+        
+        const cell = document.getElementById('grid').children[GAME.sel];
+        
+        if(n === 'X') { cell.innerText = ''; return; }
+        
+        if(n == GAME.sol[GAME.sel]) {
+            // BON
+            cell.innerText = n;
+            cell.className = 'cell fixed';
+            cell.style.color = '#0f0'; // Petit vert glitchy
+            GAME.grid[GAME.sel] = n;
+            
+            // Gain de sursis
+            GAME.stress = Math.max(0, GAME.stress - 10);
+            
+            // Check win
+            if(!GAME.grid.includes(0)) {
+                GAME.level++;
+                AUDIO.speak("Tu retardes l'inévitable.");
+                setTimeout(startLevel, 1000);
+            }
+        } else {
+            // ERREUR
+            AUDIO.sfx('hit');
+            document.body.classList.add('red-flash');
+            setTimeout(()=>document.body.classList.remove('red-flash'), 200);
+            
+            // Punition Violente
+            GAME.stress += 25;
+            AUDIO.speak("NON !");
+            
+            let phrases = ["Je vais te briser.", "Concentre-toi, ver de terre.", "Tu sens l'odeur du sang ?", "Encore une erreur..."];
+            document.getElementById('demon-box').innerText = phrases[Math.floor(Math.random()*phrases.length)];
+        }
+    }
+
+    function gameLoop() {
+        if(!GAME.active) return;
+        
+        // Stress monte tout seul et VITE
+        let speed = 0.04 + (GAME.level * 0.02);
+        GAME.stress += speed;
+        
+        document.getElementById('stress-bar').style.width = Math.min(100, GAME.stress) + '%';
+        AUDIO.stressUp(GAME.stress);
+        
+        // Effet de tremblement si stress haut
+        if(GAME.stress > 80) document.body.style.transform = `translate(${Math.random()*2}px, ${Math.random()*2}px)`;
+        else document.body.style.transform = 'none';
+
+        if(GAME.stress >= 100) {
+            triggerDeath();
+        } else {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+
+    function triggerDeath() {
+        GAME.active = false;
+        document.body.classList.add('screen-shake');
+        AUDIO.sfx('hit');
+        
+        // Délai dramatique
+        setTimeout(() => {
+            document.body.classList.remove('screen-shake');
+            document.getElementById('ui-layer').style.display = 'none';
+            
+            // Choix du scénario
+            let scenar = DEATHS[Math.floor(Math.random() * DEATHS.length)];
+            
+            // Voix finale
+            AUDIO.speak("C'est fini pour toi.");
+            
+            // Lancer cinématique
+            playCinematic(scenar);
+            
+        }, 1000);
+    }
+
+    // --- SUDOKU UTIL (Minimal) ---
+    function fillSudoku(b) {
+        const find = (b) => {
             for(let i=0; i<81; i++) {
-                if(b[i]===0) {
-                    let nums = [1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
+                if(b[i]==0) {
+                    let nums = [1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-.5);
                     for(let n of nums) {
-                        if(this.valid(b,i,n)) {
+                        if(valid(b,i,n)) {
                             b[i]=n;
-                            if(this.fill(b)) return true;
+                            if(find(b)) return true;
                             b[i]=0;
                         }
                     }
@@ -373,202 +494,17 @@
                 }
             }
             return true;
-        },
-        valid: function(b,i,n) {
-            let r=Math.floor(i/9), c=i%9;
-            for(let k=0; k<9; k++) {
-                if(b[r*9+k]===n) return false;
-                if(b[k*9+c]===n) return false;
-                let br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
-                if(b[(br+Math.floor(k/3))*9+(bc+k%3)]===n) return false;
-            }
-            return true;
+        };
+        find(b);
+    }
+    function valid(b,i,n) {
+        let r=Math.floor(i/9), c=i%9;
+        for(let k=0; k<9; k++) {
+            if(b[r*9+k]==n || b[k*9+c]==n) return false;
+            let br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+            if(b[(br+Math.floor(k/3))*9+(bc+k%3)]==n) return false;
         }
-    };
-
-    // --- LOGIQUE JEU ---
-    window.onload = function() {
-        if (STATE.hasPlayed && STATE.name) {
-            document.getElementById('intro-content').style.display = 'none';
-            document.getElementById('player-name').value = STATE.name;
-            document.getElementById('name-input-section').style.display = 'flex';
-        } else {
-            playIntroSequence();
-        }
-    };
-
-    async function playIntroSequence() {
-        const txt = document.getElementById('intro-content');
-        const lines = ["Connexion neuronale...", "Sujet trouvé.", "Bienvenue en enfer.", "Survis."];
-        for (let l of lines) {
-            txt.innerHTML = `<h2 class="fade-in" style="color:#fff; letter-spacing:3px">${l}</h2>`;
-            await new Promise(r => setTimeout(r, 2000));
-        }
-        document.getElementById('intro-content').style.display = 'none';
-        document.getElementById('name-input-section').style.display = 'flex';
-    }
-
-    function validateName() {
-        let inp = document.getElementById('player-name');
-        let val = inp.value.trim().toUpperCase();
-        if (val.length < 2) val = "MORTEL";
-        STATE.name = val;
-        localStorage.setItem('sudoku_demon_name', STATE.name);
-        localStorage.setItem('sudoku_demon_played', "true");
-        startGame();
-    }
-
-    function startGame() {
-        AudioEngine.init();
-        AudioEngine.startAmbience();
-        document.getElementById('intro-screen').style.display = 'none';
-        document.getElementById('ui-layer').style.display = 'flex';
-        document.getElementById('player-disp').innerText = STATE.name;
-        STATE.active = true;
-        STATE.level = 1;
-        DEMON.say("Bienvenue, {name}. Respire tant que tu peux.");
-        startLevel();
-        loop();
-    }
-
-    function startLevel() {
-        // --- CALME AVANT LA TEMPÊTE ---
-        STATE.stress = 0; // Reset total
-        AudioEngine.updateStress(0); // Son calme
-        
-        let bar = document.getElementById('stress-bar');
-        bar.style.width = "0%";
-        bar.style.backgroundColor = "var(--blood)";
-        
-        document.getElementById('vignette').style.boxShadow = "none";
-
-        // Difficulté progressive (Trous)
-        let holes = 5 + Math.floor(STATE.level * 4); // +4 trous par niveau
-        if (holes > 60) holes = 60;
-        if (STATE.level === 1) holes = 3; // Très facile au début pour le "hook"
-
-        let data = Sudoku.generate(holes);
-        STATE.grid = data.p;
-        STATE.solution = data.s;
-        
-        renderGrid();
-        document.getElementById('lvl-disp').innerText = STATE.level;
-    }
-
-    function renderGrid() {
-        const g = document.getElementById('grid');
-        g.innerHTML = '';
-        STATE.grid.forEach((v, i) => {
-            let d = document.createElement('div');
-            d.className = 'cell' + (v!==0 ? ' fixed' : '');
-            if(v!==0) d.innerText = v;
-            else d.onclick = () => select(d, i);
-            g.appendChild(d);
-        });
-        STATE.selectedIdx = null;
-    }
-
-    function select(el, idx) {
-        if(!STATE.active) return;
-        document.querySelectorAll('.selected').forEach(e=>e.classList.remove('selected'));
-        el.classList.add('selected');
-        STATE.selectedIdx = idx;
-    }
-
-    function input(val) {
-        if(STATE.selectedIdx===null || !STATE.active) return;
-        STATE.lastActionTime = Date.now();
-        
-        let cell = document.getElementById('grid').children[STATE.selectedIdx];
-        
-        if(val === 'X') {
-            cell.innerText = '';
-            STATE.grid[STATE.selectedIdx] = 0;
-            return;
-        }
-
-        AudioEngine.sfxClick();
-
-        if(val === STATE.solution[STATE.selectedIdx]) {
-            // CORRECT
-            cell.innerText = val;
-            cell.className = 'cell correct';
-            STATE.grid[STATE.selectedIdx] = val;
-            
-            // Petit soulagement de stress quand on trouve
-            STATE.stress = Math.max(0, STATE.stress - 5);
-
-            if(!STATE.grid.includes(0)) {
-                // VICTOIRE NIVEAU
-                AudioEngine.sfxWin();
-                STATE.level++;
-                DEMON.say("Tu survis... pour l'instant.", true, -1);
-                setTimeout(startLevel, 2000);
-            }
-        } else {
-            // ERREUR
-            AudioEngine.sfxError();
-            cell.classList.add('error');
-            setTimeout(()=>cell.classList.remove('error'), 400);
-            
-            // Punition sévère
-            let punish = 15 + (STATE.level * 2);
-            STATE.stress += punish;
-            DEMON.say("ERREUR !", true, 1);
-        }
-    }
-
-    function loop() {
-        if(!STATE.active) return;
-
-        // --- PRESSION DYNAMIQUE ---
-        // Niveau 1 : Très lent (0.02)
-        // Niveau 10 : Rapide (0.2)
-        let baseSpeed = 0.02;
-        let speedMultiplier = 1 + (STATE.level * 0.15); 
-        STATE.stress += baseSpeed * speedMultiplier;
-        
-        let bar = document.getElementById('stress-bar');
-        bar.style.width = Math.min(100, STATE.stress) + "%";
-        
-        // Effets visuels de stress
-        if (STATE.stress > 75) {
-            bar.style.backgroundColor = "#ff0000";
-            document.getElementById('grid').style.borderColor = `rgba(150,0,0, ${Math.random()})`;
-        } else {
-            bar.style.backgroundColor = "var(--blood)";
-            document.getElementById('grid').style.borderColor = "#555";
-        }
-
-        AudioEngine.updateStress(STATE.stress);
-        
-        // Vignette obscurcissante
-        let vigIntensity = STATE.stress * 2; 
-        document.getElementById('vignette').style.boxShadow = `inset 0 0 ${vigIntensity}px var(--blood)`;
-
-        DEMON.checkState();
-
-        if(STATE.stress >= 100) {
-            die();
-        } else {
-            requestAnimationFrame(loop);
-        }
-    }
-
-    function die() {
-        STATE.active = false;
-        AudioEngine.sfxError();
-        
-        // Sélection de la cinématique
-        let scenario = DEMON.triggerDeath();
-        
-        // Dialogue final audio
-        DEMON.say("C'est terminé.", true, 1);
-        
-        // Affichage Game Over
-        document.getElementById('game-over').style.display = 'flex';
-        // Injection texte scénario avec animation type machine à écrire (simulée)
-        document.getElementById('death-desc').innerText = scenario;
+        return true;
     }
 
 </script>
