@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Viral</title>
+    <style>
+        body { background-color: #121212; color: #ffffff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { text-align: center; width: 100%; max-width: 500px; }
+        .accent { color: #00f2ea; }
+        #game-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background-color: #555; border: 2px solid #00f2ea; margin: 20px auto; width: 90vw; max-width: 400px; aspect-ratio: 1; }
+        .tile { background-color: #1e1e1e; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; cursor: pointer; user-select: none; }
+        .tile.selected { background-color: #333; box-shadow: inset 0 0 10px #00f2ea; }
+        .tile.prefilled { color: #888; pointer-events: none; }
+        .numpad { display: flex; justify-content: center; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+        .num-btn { background-color: #333; color: white; border: 1px solid #00f2ea; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .actions button { background-color: #00f2ea; border: none; padding: 10px 20px; color: #000; font-weight: bold; border-radius: 20px; cursor: pointer; margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SUDOKU <span class="accent">TIKTOK</span></h1>
+        <div id="game-board"></div>
+        <div class="numpad" id="numpad"></div>
+        <div class="actions">
+            <button onclick="newGame()">Nouvelle Partie</button>
+        </div>
+    </div>
+
+    <script>
+        let selectedTile = null;
+        let solution = [];
+
+        window.onload = function() {
+            const boardDiv = document.getElementById("game-board");
+            for (let i = 0; i < 81; i++) {
+                let tile = document.createElement("div");
+                tile.id = Math.floor(i/9) + "-" + (i%9);
+                tile.classList.add("tile");
+                tile.onclick = function() {
+                    if (selectedTile) selectedTile.classList.remove("selected");
+                    selectedTile = this;
+                    selectedTile.classList.add("selected");
+                };
+                boardDiv.appendChild(tile);
+            }
+            const numpad = document.getElementById("numpad");
+            for (let i = 1; i <= 9; i++) {
+                let btn = document.createElement("button");
+                btn.innerText = i; btn.classList.add("num-btn");
+                btn.onclick = function() {
+                    if (selectedTile && !selectedTile.classList.contains("prefilled")) {
+                        selectedTile.innerText = i;
+                    }
+                };
+                numpad.appendChild(btn);
+            }
+            newGame();
+        };
+
+        function newGame() {
+            let base = ["534678912", "672195348", "198342567", "859761423", "426853791", "713924856", "961537284", "287419635", "345286179"];
+            solution = base.map(row => row.split(''));
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    let tile = document.getElementById(r + "-" + c);
+                    tile.innerText = ""; tile.classList.remove("prefilled");
+                    if (Math.random() > 0.5) {
+                        tile.innerText = solution[r][c];
+                        tile.classList.add("prefilled");
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
