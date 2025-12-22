@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SUDOKU OR DIE: PURGATORY</title>
+    <title>SUDOKU OR DIE: JUDGMENT</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
@@ -11,7 +11,7 @@
             --bg: #050505;
             --blood: #8a0b0b;
             --text: #a0a0a0;
-            --highlight: #e0e0e0;
+            --bone: #e0e0e0;
         }
 
         * { user-select: none; box-sizing: border-box; touch-action: none; -webkit-tap-highlight-color: transparent; }
@@ -34,7 +34,7 @@
             position: fixed; inset: 0;
             background: radial-gradient(circle, transparent 40%, #000 100%);
             pointer-events: none; z-index: 900;
-            transition: box-shadow 0.2s;
+            transition: box-shadow 1s ease-out; /* Transition douce pour l'effet calmant */
         }
 
         /* --- UI JEU --- */
@@ -46,7 +46,7 @@
         #demon-eye {
             width: 100%; text-align: center; margin-bottom: 10px;
             font-size: 0.9rem; color: var(--blood); text-shadow: 0 0 5px var(--blood);
-            min-height: 60px; display: flex; align-items: center; justify-content: center;
+            min-height: 70px; display: flex; align-items: center; justify-content: center;
             border-bottom: 1px solid #333; padding-bottom: 10px;
             transition: color 0.3s;
         }
@@ -59,7 +59,7 @@
         }
         #stress-bar {
             width: 0%; height: 100%; background: var(--blood);
-            transition: width 0.1s linear;
+            transition: width 0.1s linear, background-color 0.5s;
             box-shadow: 0 0 10px var(--blood);
         }
 
@@ -119,18 +119,17 @@
             cursor: pointer; letter-spacing: 2px; transition: 0.3s;
         }
         button.start:hover { background: var(--blood); color: #000; box-shadow: 0 0 30px var(--blood); }
-        
-        .skip-hint {
-            position: absolute; bottom: 20px; color: #444; font-size: 0.7rem; cursor: pointer;
-        }
 
         /* --- GAME OVER --- */
         #game-over {
-            display: none; position: fixed; inset: 0; background: #200; z-index: 3000;
+            display: none; position: fixed; inset: 0; background: #000; z-index: 3000;
             flex-direction: column; align-items: center; justify-content: center;
-            text-align: center; animation: pulseRed 2s infinite;
+            text-align: center; padding: 20px;
         }
-        @keyframes pulseRed { 0% {background:#200} 50% {background:#300} 100% {background:#200} }
+        #death-desc {
+            max-width: 600px; font-size: 1.1rem; color: var(--bone); line-height: 1.5; margin: 20px 0;
+            border-left: 3px solid var(--blood); padding-left: 15px; text-align: left;
+        }
 
     </style>
 </head>
@@ -142,7 +141,7 @@
 <div id="intro-screen">
     <div id="intro-content"></div>
     <div id="name-input-section" style="display:none; flex-direction: column; align-items: center;">
-        <p style="color:#888; font-size:0.9rem;">COMMENT DOIS-JE T'APPELER AVANT TA MORT ?</p>
+        <p style="color:#888; font-size:0.9rem;">TON NOM, ÂME PERDUE ?</p>
         <input type="text" id="player-name" maxlength="10" placeholder="..." autocomplete="off">
         <button class="start" onclick="validateName()">ENTRER</button>
     </div>
@@ -174,9 +173,9 @@
 </div>
 
 <div id="game-over">
-    <h1 style="color:#fff; font-size:3rem; margin:0">TU ES MORT</h1>
-    <p id="death-msg" style="color:#ffaaaa; margin-top:10px"></p>
-    <button class="start" onclick="location.reload()">RECOMMENCER</button>
+    <h1 style="color:var(--blood); font-size:2.5rem; margin:0; text-shadow: 0 0 20px var(--blood)">FATALITÉ</h1>
+    <div id="death-desc"></div>
+    <button class="start" onclick="location.reload()">RENAÎTRE</button>
 </div>
 
 <script>
@@ -203,7 +202,7 @@
             window.AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
             
-            // Drone d'ambiance sombre
+            // Drone d'ambiance (Sawtooth pour le coté agressif)
             this.droneOsc = this.ctx.createOscillator();
             this.droneGain = this.ctx.createGain();
             this.droneOsc.type = 'sawtooth';
@@ -227,12 +226,12 @@
         },
 
         updateStress: function(stress) {
-            // Le son devient instable, plus aigu et "dissonant"
-            let targetFreq = 40 + (stress * 0.8);
-            let targetVol = 0.2 + (stress / 200);
+            // Si stress 0, le son est très grave et faible (calme avant la tempête)
+            let targetFreq = 40 + (stress * 1.5);
+            let targetVol = 0.1 + (stress / 150);
             
-            // Micro-vibrations pour simuler l'instabilité
-            let wobble = Math.random() * (stress/10);
+            // Tremblement du son si stress > 70
+            let wobble = stress > 70 ? Math.random() * 10 : 0;
             
             this.droneOsc.frequency.setTargetAtTime(targetFreq + wobble, this.ctx.currentTime, 0.5);
             this.droneGain.gain.setTargetAtTime(targetVol, this.ctx.currentTime, 0.5);
@@ -254,58 +253,67 @@
             const t = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
             const g = this.ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, t);
-            osc.frequency.linearRampToValueAtTime(50, t + 0.3);
-            g.gain.setValueAtTime(0.5, t);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(100, t);
+            osc.frequency.linearRampToValueAtTime(40, t + 0.3);
+            g.gain.setValueAtTime(0.3, t);
             g.gain.linearRampToValueAtTime(0, t + 0.3);
             osc.connect(g); g.connect(this.ctx.destination);
             osc.start(); osc.stop(t + 0.3);
         },
 
         sfxWin: function() {
+            // Un son éthéré pour le soulagement
             const t = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
             const g = this.ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, t);
-            osc.frequency.exponentialRampToValueAtTime(800, t + 0.2);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(200, t);
+            osc.frequency.linearRampToValueAtTime(600, t + 1);
             g.gain.setValueAtTime(0.2, t);
-            g.gain.linearRampToValueAtTime(0, t + 0.5);
+            g.gain.linearRampToValueAtTime(0, t + 1.5);
             osc.connect(g); g.connect(this.ctx.destination);
-            osc.start(); osc.stop(t + 0.5);
+            osc.start(); osc.stop(t + 1.5);
         }
     };
 
-    // --- DEMON AI (DIALOGUES) ---
+    // --- DEMON AI ---
     const DEMON = {
         lastSpeech: 0,
         
+        // Liste des morts horribles
+        deathScenarios: [
+            "Je t'attrape par les cheveux. Ma mâchoire s'ouvre démesurément et se referme sur ton cou dans un craquement humide. Je détache ta tête et la lance à ma progéniture affamée qui grouille dans l'ombre.",
+            "Je plonge ma main griffue dans ta poitrine. Je sens ton cœur battre contre ma paume avant de l'arracher d'un coup sec. Tu me regardes le dévorer alors que la lumière quitte tes yeux.",
+            "Des chaînes surgissent du sol et te brisent les os, un par un. Je te laisse là, masse de chair informe et gémissante, sur cette chaise froide pour l'éternité.",
+            "Je t'attrape les épaules et verse du plomb en fusion dans tes orbites. Tes cris sont une douce mélodie. L'obscurité sera désormais ta seule compagne.",
+            "Je t'ouvre le ventre avec mon ongle. Tes entrailles se déversent sur le sol du purgatoire. Je t'oblige à les ramasser avant que tu ne t'effondres."
+        ],
+
         say: function(text, force = false, anger = 0) {
             let now = Date.now();
-            if (!force && now - this.lastSpeech < 3500) return;
+            if (!force && now - this.lastSpeech < 4000) return;
             this.lastSpeech = now;
 
-            // Injection du nom
             let finalTxt = text.replace("{name}", STATE.name || "Mortel");
 
             // UI
             const el = document.getElementById('demon-eye');
             el.innerText = finalTxt;
-            el.style.color = anger > 0 ? "#f00" : "var(--blood)";
+            el.style.color = anger > 0 ? "#f00" : (anger < 0 ? "#8f8" : "var(--blood)"); // Vert pale si content
             el.style.animation = "none";
             el.offsetHeight; 
-            el.style.animation = "shake 0.4s";
+            el.style.animation = anger > 0 ? "shake 0.4s" : "pop 0.3s";
 
-            // TTS (Text To Speech)
+            // TTS
             window.speechSynthesis.cancel();
             const utt = new SpeechSynthesisUtterance(finalTxt);
             utt.lang = 'fr-FR';
-            utt.pitch = 0.1 + (anger * 0.1); // Plus aigu si énervé
-            utt.rate = 0.8;
+            // Voix grave et lente
+            utt.pitch = 0.5 + (anger * 0.2); 
+            utt.rate = 0.9;
             utt.volume = 1;
             
-            // Choix de voix (préférer voix masculine/grave si dispo)
             let voices = window.speechSynthesis.getVoices();
             let fr = voices.find(v => v.lang.includes('fr'));
             if(fr) utt.voice = fr;
@@ -313,52 +321,36 @@
             window.speechSynthesis.speak(utt);
         },
 
-        checkIdle: function() {
-            if (Date.now() - STATE.lastActionTime > 12000 && STATE.active) {
-                let lines = [
-                    "{name}...",
-                    "Tu dors ?",
-                    "Le temps coule, {name}.",
-                    "Je m'ennuie.",
-                    "Joue."
-                ];
+        checkState: function() {
+            if(!STATE.active) return;
+            const now = Date.now();
+            
+            // Si inactif trop longtemps
+            if (now - STATE.lastActionTime > 10000) {
+                let lines = ["Je m'ennuie, {name}.", "Le temps n'est pas ton ami.", "Joue.", "Tu as peur ?"];
                 this.say(lines[Math.floor(Math.random() * lines.length)]);
-                STATE.lastActionTime = Date.now(); // Reset pour pas spammer
+                STATE.lastActionTime = now;
+            }
+
+            // Commentaire sur le stress élevé
+            if (STATE.stress > 80 && Math.random() < 0.05) {
+                this.say("Je sens ton cœur battre...", true, 1);
             }
         },
 
-        reactError: function() {
-            let lines = [
-                "Non, {name} !",
-                "Idiot.",
-                "Tu trembles.",
-                "Regarde bien.",
-                "Encore une erreur.",
-                "Pathétique."
-            ];
-            this.say(lines[Math.floor(Math.random() * lines.length)], true, 1);
-        },
-
-        reactWin: function() {
-            let lines = [
-                "Hmm.",
-                "Pas mal, {name}.",
-                "Suivant.",
-                "Ne te relâche pas.",
-                "Tu as de la chance."
-            ];
-            this.say(lines[Math.floor(Math.random() * lines.length)]);
+        triggerDeath: function() {
+            // Choix aléatoire d'une mort
+            let scenario = this.deathScenarios[Math.floor(Math.random() * this.deathScenarios.length)];
+            return scenario;
         }
     };
 
-    // --- SUDOKU ENGINE ---
+    // --- SUDOKU ENGINE (Simplifié) ---
     const Sudoku = {
         generate: function(holes) {
             let board = Array(81).fill(0);
             this.fill(board);
             let sol = [...board];
-            
-            // Création des trous
             let attempts = holes;
             while(attempts > 0) {
                 let i = Math.floor(Math.random()*81);
@@ -394,26 +386,23 @@
         }
     };
 
-    // --- FLOW DU JEU ---
+    // --- LOGIQUE JEU ---
     window.onload = function() {
         if (STATE.hasPlayed && STATE.name) {
-            // Joueur existant : skip intro cinématique, aller direct à l'input nom (pré-rempli)
             document.getElementById('intro-content').style.display = 'none';
             document.getElementById('player-name').value = STATE.name;
             document.getElementById('name-input-section').style.display = 'flex';
         } else {
-            // Nouveau joueur : Intro complète
             playIntroSequence();
         }
     };
 
     async function playIntroSequence() {
         const txt = document.getElementById('intro-content');
-        const lines = ["Initialisation...", "Sujet détecté.", "Tu es dans mon purgatoire.", "Prouve ta valeur."];
-        
+        const lines = ["Connexion neuronale...", "Sujet trouvé.", "Bienvenue en enfer.", "Survis."];
         for (let l of lines) {
             txt.innerHTML = `<h2 class="fade-in" style="color:#fff; letter-spacing:3px">${l}</h2>`;
-            await new Promise(r => setTimeout(r, 2500));
+            await new Promise(r => setTimeout(r, 2000));
         }
         document.getElementById('intro-content').style.display = 'none';
         document.getElementById('name-input-section').style.display = 'flex';
@@ -423,39 +412,40 @@
         let inp = document.getElementById('player-name');
         let val = inp.value.trim().toUpperCase();
         if (val.length < 2) val = "MORTEL";
-        
         STATE.name = val;
         localStorage.setItem('sudoku_demon_name', STATE.name);
         localStorage.setItem('sudoku_demon_played', "true");
-        
         startGame();
     }
 
     function startGame() {
         AudioEngine.init();
         AudioEngine.startAmbience();
-        
         document.getElementById('intro-screen').style.display = 'none';
         document.getElementById('ui-layer').style.display = 'flex';
         document.getElementById('player-disp').innerText = STATE.name;
-        
         STATE.active = true;
         STATE.level = 1;
-        DEMON.say("Bienvenue, {name}. Commençons doucement.");
+        DEMON.say("Bienvenue, {name}. Respire tant que tu peux.");
         startLevel();
         loop();
     }
 
     function startLevel() {
-        STATE.stress = Math.max(0, STATE.stress - 30); // Récompense de stress
+        // --- CALME AVANT LA TEMPÊTE ---
+        STATE.stress = 0; // Reset total
+        AudioEngine.updateStress(0); // Son calme
         
-        // --- COURBE DE DIFFICULTÉ ---
-        // Niveau 1 : très facile (5 trous) -> gratification instantanée
-        // Niveau 10 : 35 trous
-        // Max 55 trous
-        let holes = 5 + Math.floor(STATE.level * 3);
-        if (holes > 55) holes = 55;
-        if (STATE.level === 1) holes = 5; // Force easy mode start
+        let bar = document.getElementById('stress-bar');
+        bar.style.width = "0%";
+        bar.style.backgroundColor = "var(--blood)";
+        
+        document.getElementById('vignette').style.boxShadow = "none";
+
+        // Difficulté progressive (Trous)
+        let holes = 5 + Math.floor(STATE.level * 4); // +4 trous par niveau
+        if (holes > 60) holes = 60;
+        if (STATE.level === 1) holes = 3; // Très facile au début pour le "hook"
 
         let data = Sudoku.generate(holes);
         STATE.grid = data.p;
@@ -505,12 +495,15 @@
             cell.className = 'cell correct';
             STATE.grid[STATE.selectedIdx] = val;
             
-            // Check Win global
+            // Petit soulagement de stress quand on trouve
+            STATE.stress = Math.max(0, STATE.stress - 5);
+
             if(!STATE.grid.includes(0)) {
+                // VICTOIRE NIVEAU
                 AudioEngine.sfxWin();
                 STATE.level++;
-                DEMON.reactWin();
-                setTimeout(startLevel, 1000);
+                DEMON.say("Tu survis... pour l'instant.", true, -1);
+                setTimeout(startLevel, 2000);
             }
         } else {
             // ERREUR
@@ -518,40 +511,43 @@
             cell.classList.add('error');
             setTimeout(()=>cell.classList.remove('error'), 400);
             
-            // Punition stress : augmente avec le niveau
+            // Punition sévère
             let punish = 15 + (STATE.level * 2);
             STATE.stress += punish;
-            DEMON.reactError();
+            DEMON.say("ERREUR !", true, 1);
         }
     }
 
     function loop() {
         if(!STATE.active) return;
 
-        // --- STRESS BUILDUP ---
-        // Niveau 1 : Très lent
-        // Niveau + : De plus en plus vite
-        let speed = 0.03 + (STATE.level * 0.005);
-        STATE.stress += speed;
+        // --- PRESSION DYNAMIQUE ---
+        // Niveau 1 : Très lent (0.02)
+        // Niveau 10 : Rapide (0.2)
+        let baseSpeed = 0.02;
+        let speedMultiplier = 1 + (STATE.level * 0.15); 
+        STATE.stress += baseSpeed * speedMultiplier;
         
-        // UI Updates
         let bar = document.getElementById('stress-bar');
         bar.style.width = Math.min(100, STATE.stress) + "%";
         
-        // Couleur bar : vire au rouge vif
-        if (STATE.stress > 80) bar.style.backgroundColor = "#f00";
-        else bar.style.backgroundColor = "var(--blood)";
+        // Effets visuels de stress
+        if (STATE.stress > 75) {
+            bar.style.backgroundColor = "#ff0000";
+            document.getElementById('grid').style.borderColor = `rgba(150,0,0, ${Math.random()})`;
+        } else {
+            bar.style.backgroundColor = "var(--blood)";
+            document.getElementById('grid').style.borderColor = "#555";
+        }
 
-        // Audio dynamic
         AudioEngine.updateStress(STATE.stress);
+        
+        // Vignette obscurcissante
+        let vigIntensity = STATE.stress * 2; 
+        document.getElementById('vignette').style.boxShadow = `inset 0 0 ${vigIntensity}px var(--blood)`;
 
-        // Vignette
-        document.getElementById('vignette').style.boxShadow = `inset 0 0 ${STATE.stress*1.5}px var(--blood)`;
+        DEMON.checkState();
 
-        // Check Idle
-        DEMON.checkIdle();
-
-        // Death
         if(STATE.stress >= 100) {
             die();
         } else {
@@ -562,10 +558,17 @@
     function die() {
         STATE.active = false;
         AudioEngine.sfxError();
-        DEMON.say("C'est fini pour toi, {name}.", true);
         
+        // Sélection de la cinématique
+        let scenario = DEMON.triggerDeath();
+        
+        // Dialogue final audio
+        DEMON.say("C'est terminé.", true, 1);
+        
+        // Affichage Game Over
         document.getElementById('game-over').style.display = 'flex';
-        document.getElementById('death-msg').innerText = `Tu as succombé au niveau ${STATE.level}.`;
+        // Injection texte scénario avec animation type machine à écrire (simulée)
+        document.getElementById('death-desc').innerText = scenario;
     }
 
 </script>
