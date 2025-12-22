@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUDOKU OR DIE</title>
+    <style>
+        :root { --blood: #ff4d4d; --neon: #00f2ea; }
+        body { background: #050505; color: white; font-family: 'Courier New', Courier, monospace; margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        
+        /* Ambiance Lampe de bureau */
+        .scene { position: relative; width: 100%; max-width: 400px; padding: 15px; background: radial-gradient(circle at 50% 50%, rgba(255,255,200,0.08) 0%, rgba(0,0,0,1) 80%); display: none; }
+        
+        #monster-dialogue { height: 60px; text-align: center; color: var(--blood); font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; text-shadow: 0 0 10px #000; }
+        
+        #game-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background: #333; border: 4px solid #111; width: 90vw; max-width: 360px; aspect-ratio: 1; margin: 0 auto; }
+        .tile { background: #eee; color: #111; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+        .tile.selected { background: #bbb; box-shadow: inset 0 0 8px var(--neon); }
+        .tile.prefilled { background: #ccc; color: #666; pointer-events: none; }
+        
+        .numpad { display: flex; justify-content: center; gap: 4px; margin-top: 15px; flex-wrap: wrap; }
+        .num-btn { background: #111; color: white; border: 1px solid #444; padding: 12px; border-radius: 4px; cursor: pointer; min-width: 38px; }
+        
+        .threat-bar { width: 100%; height: 5px; background: #111; margin: 10px 0; border: 1px solid #222; }
+        #monster-progress { width: 0%; height: 100%; background: var(--blood); transition: width 0.3s; }
+
+        /* Écran d'accueil avec AIDE */
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        .rules-card { background: #111; border: 1px solid #333; padding: 15px; margin: 20px 0; font-size: 0.8rem; border-left: 4px solid var(--blood); text-align: left; }
+        
+        #death-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: maroon; z-index: 200; flex-direction: column; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+<div id="overlay">
+    <h1 style="color:var(--blood); letter-spacing: 4px;">SUDOKU OR DIE</h1>
+    <div class="rules-card">
+        <b style="color:var(--neon)">COMMENT SURVIVRE :</b><br><br>
+        1. Remplis les cases avec les chiffres de 1 à 9.<br>
+        2. <b>INTERDIT</b> d'avoir le même chiffre sur la même ligne ou colonne.<br>
+        3. <b>INTERDIT</b> d'avoir le même chiffre dans un carré de 3x3.<br>
+        4. Si la barre rouge est pleine, il te tire dessus.
+    </div>
+    <button onclick="initGame()" style="background:var(--blood); border:none; padding:15px 40px; font-weight:bold; cursor:pointer;">ENTRER DANS LA PIÈCE</button>
+</div>
+
+<div id="death-screen">
+    <h1 style="font-size: 3rem;">🔫</h1>
+    <h1>LE MONSTRE T'A TUÉ</h1>
+    <p id="death-reason">"Tu ne sais même pas compter jusqu'à 9..."</p>
+    <button onclick="location.reload()" style="background:white; color:black; border:none; padding:10px 20px; cursor:pointer;">RESSAYER</button>
+</div>
+
+<div class="scene" id="main-scene">
+    <div id="monster-dialogue">"Je t'attends..."</div>
+    <div style="font-size: 0.7rem; color: #555; margin-bottom: 5px;">NIVEAU <span id="lvl">1</span> | MENACE <span id="threat">0</span>%</div>
+    <div class="threat-bar"><div id="monster-progress"></div></div>
+    <div id="game-board"></div>
+    <div class="numpad" id="numpad"></div>
+</div>
+
+<script>
+    let level = 1;
+    let selectedTile = null;
+    let solution = [];
+    let progress = 0;
+    let monsterVoice = null;
+
+    // Voix du monstre
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'fr-FR';
+        msg.pitch = 0.1; // Voix grave
+        msg.rate = 0.8;
+        window.speechSynthesis.speak(msg);
+    }
+
+    function initGame() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('main-scene').style.display = 'block';
+        speak("Bienvenue. Résous la grille ou meurt.");
+        setupBoard();
+        loadLevel();
+    }
+
+    function setupBoard() {
+        const board = document.getElementById("game-board");
+        for (let i = 0; i < 81; i++) {
+            let tile = document.createElement("div");
+            tile.id = Math.floor(i/9) + "-" + (i%9);
+            tile.className = "tile";
+            tile.onclick = () => {
+                if(selectedTile) selectedTile.classList.remove('selected');
+                selectedTile = tile;
+                tile.classList.add('selected');
+            };
+            board.appendChild(tile);
+        }
+        const pad = document.getElementById("numpad");
+        for (let i = 1; i <= 9; i++) {
+            let btn = document.createElement("button");
+            btn.innerText = i; btn.className = "num-btn";
+            btn.onclick = () => {
+                if(selectedTile && !selectedTile.classList.contains('prefilled')) {
+                    selectedTile.innerText = i;
+                    checkWin();
+                }
+            };
+            pad.appendChild(btn);
+        }
+    }
+
+    function loadLevel() {
+        progress = 0;
+        document.getElementById('lvl').innerText = level;
+        // Grille de base
+        let base = ["534678912", "672195348", "198342567", "859761423", "426853791", "713924856", "961537284", "287419635", "345286179"];
+        solution = base.map(row => row.split(''));
+
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                let tile = document.getElementById(r + "-" + c);
+                tile.innerText = ""; tile.classList.remove('prefilled');
+                // NIVEAU 1 : Ultra facile (presque tout rempli)
+                let chance = Math.max(0.95 - (level * 0.05), 0.2);
+                if(Math.random() < chance) {
+                    tile.innerText = solution[r][c];
+                    tile.classList.add('prefilled');
+                }
+            }
+        }
+        
+        clearInterval(window.timer);
+        window.timer = setInterval(() => {
+            progress += 1 + (level * 0.2);
+            document.getElementById('monster-progress').style.width = progress + "%";
+            document.getElementById('threat').innerText = Math.floor(progress);
+            if(progress >= 100) gameOver();
+            if(Math.floor(progress) % 20 == 0) {
+                const lines = ["Dépêche-toi.", "Je charge mon arme.", "Tu trembles ?", "Regarde le chrono."];
+                let l = lines[Math.floor(Math.random()*lines.length)];
+                document.getElementById('monster-dialogue').innerText = `"${l}"`;
+                speak(l);
+            }
+        }, 1000);
+    }
+
+    function checkWin() {
+        let win = true;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if(document.getElementById(r + "-" + c).innerText != solution[r][c]) win = false;
+            }
+        }
+        if(win) {
+            level++;
+            speak("Pas mal... mais le niveau suivant sera ton tombeau.");
+            loadLevel();
+        }
+    }
+
+    function gameOver() {
+        clearInterval(window.timer);
+        document.getElementById('death-screen').style.display = 'flex';
+        speak("ADIEU.");
+    }
+</script>
+</body>
+</html>
