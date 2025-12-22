@@ -3,300 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUDOKU OR DIE</title>
+    <title>SUDOKU OR DIE - VISUAL</title>
     <style>
         :root { --blood: #8a0303; --neon: #00f2ea; }
-        body { background: #000; color: #eee; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        body { background: #000; color: #eee; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
         
-        /* SCÈNE DE JEU */
-        .scene { position: relative; width: 100%; max-width: 700px; height: 100vh; display: none; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center; padding: 15px; box-sizing: border-box; }
-        
-        /* ZONE DU JOUEUR */
-        .player-zone, .monster-zone { display: flex; flex-direction: column; align-items: center; text-align: center; }
-        .player-zone { background: radial-gradient(circle at 50% 50%, rgba(20,0,0,0.2) 0%, rgba(0,0,0,0.8) 70%); }
+        /* MISE EN PAGE : Joueur à gauche, Monstre à droite */
+        .game-container { display: none; width: 100%; max-width: 900px; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; align-items: center; }
 
-        /* MONSTRE */
-        .monster-zone { background: radial-gradient(circle at 50% 50%, rgba(50,0,0,0.3) 0%, rgba(0,0,0,0.8) 70%); }
-        #monster-image-container { position: relative; width: 180px; height: 200px; margin-bottom: 10px; }
-        #monster-image { width: 100%; height: 100%; object-fit: contain; }
-        #monster-mouth { position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); width: 30%; height: 15%; background: transparent; border-radius: 50%; animation: talking 0.5s infinite alternate; display: none; }
-        @keyframes talking { from { transform: translate(-50%, -50%) scaleY(1); opacity: 1; } to { transform: translate(-50%, -50%) scaleY(1.2); opacity: 0.8; } }
-
-        /* DIALOGUE & GRILLE DU MONSTRE */
-        #monster-dialogue { height: 80px; color: var(--blood); font-weight: bold; font-size: 1.1rem; text-shadow: 0 0 10px #000; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; line-height: 1.2; text-transform: uppercase; }
-        #monster-sudoku { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background: #111; border: 2px solid #333; width: 150px; height: 150px; opacity: 0.7; }
-        .monster-tile { background: #0a0a0a; border: 0.5px solid #222; display: flex; justify-content: center; align-items: center; font-size: 0.7rem; color: #555; }
+        .zone { display: flex; flex-direction: column; align-items: center; text-align: center; }
         
-        /* ZONE DU JOUEUR */
-        #player-sudoku-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background: #111; border: 3px solid #333; width: 90vw; max-width: 350px; aspect-ratio: 1; margin: 0 auto; box-shadow: 0 0 30px rgba(138, 3, 3, 0.2); }
-        .player-tile { background: #1a1a1a; color: #ccc; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; font-weight: bold; cursor: pointer; border: 0.5px solid #222; transition: 0.1s; }
-        .player-tile.selected { background: #333; box-shadow: inset 0 0 15px var(--blood); color: white; }
-        .player-tile.prefilled { background: #0a0a0a; color: #555; pointer-events: none; }
-        
-        .numpad { display: flex; justify-content: center; gap: 5px; margin-top: 20px; flex-wrap: wrap; }
-        .num-btn { background: #050505; color: var(--blood); border: 1px solid var(--blood); padding: 15px 20px; border-radius: 2px; cursor: pointer; font-size: 1.1rem; font-family: 'Courier New'; }
-        
-        /* BARRE DE MENACE */
-        .threat-bar { width: 100%; height: 6px; background: #111; margin: 15px 0; border: 1px solid #222; }
-        #monster-progress { width: 0%; height: 100%; background: var(--blood); box-shadow: 0 0 15px var(--blood); transition: width 0.3s linear; }
+        /* GRILLE DU JOUEUR */
+        #player-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background: #333; border: 3px solid #111; width: 350px; height: 350px; }
+        .tile { background: #1a1a1a; color: #ccc; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; cursor: pointer; border: 0.5px solid #222; }
+        .tile.selected { background: #333; box-shadow: inset 0 0 10px var(--blood); color: white; }
+        .tile.prefilled { background: #0a0a0a; color: #555; pointer-events: none; }
 
-        /* MENUS */
-        #menu { position: fixed; inset: 0; background: black; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        .title { color: var(--blood); font-size: 3rem; letter-spacing: 8px; margin-bottom: 5px; text-shadow: 0 0 20px var(--blood); }
-        .start-btn { background: #000; color: var(--blood); border: 1px solid var(--blood); padding: 20px 50px; font-weight: bold; cursor: pointer; font-size: 1.2rem; margin-top: 50px; transition: 0.5s; }
-        .start-btn:hover { background: var(--blood); color: black; box-shadow: 0 0 40px var(--blood); }
-        #death-screen { display: none; position: fixed; inset: 0; background: #000; z-index: 300; flex-direction: column; justify-content: center; align-items: center; color: var(--blood); }
+        /* ZONE DU MONSTRE */
+        .monster-img { width: 250px; height: 250px; border-radius: 50%; border: 4px solid var(--blood); box-shadow: 0 0 20px var(--blood); margin-bottom: 10px; object-fit: cover; }
+        #monster-dialogue { height: 80px; color: var(--blood); font-weight: bold; font-size: 1rem; text-transform: uppercase; padding: 0 10px; }
+        
+        /* PETITE GRILLE DU MONSTRE (Il joue aussi) */
+        .mini-sudoku { display: grid; grid-template-columns: repeat(9, 1fr); width: 100px; height: 100px; background: #111; opacity: 0.5; margin-top: 10px; }
+        .m-tile { border: 0.1px solid #222; }
 
-        /* ÉCRAN DE SAISIE DU NOM */
-        #name-input-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; background: black; z-index: 150; }
-        #player-name-field { padding: 10px; font-size: 1.2rem; margin: 20px; background: #111; border: 1px solid var(--blood); color: white; text-align: center; }
-        #name-submit-btn { background: var(--blood); color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        /* BOUTONS NUMÉRIQUES */
+        .numpad { display: flex; justify-content: center; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
+        .num-btn { background: #000; color: var(--blood); border: 1px solid var(--blood); padding: 10px 15px; cursor: pointer; font-size: 1rem; }
+
+        /* ÉCRANS OVERLAY */
+        .overlay { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        #name-input { padding: 15px; font-size: 1.5rem; background: #111; border: 1px solid var(--blood); color: white; margin: 20px; }
+        .btn-start { background: var(--blood); color: white; border: none; padding: 15px 40px; font-size: 1.2rem; cursor: pointer; font-weight: bold; }
+        
+        .threat-bar { width: 100%; height: 5px; background: #111; margin: 10px 0; border: 1px solid #222; }
+        #progress-fill { width: 0%; height: 100%; background: var(--blood); transition: width 0.5s; }
     </style>
 </head>
 <body>
 
-<div id="menu">
-    <h1 class="title">SUDOKU<br>OR DIE</h1>
-    <p style="color:#333; font-style: italic;">"Le silence est ton seul ami."</p>
-    <button class="start-btn" onclick="showNameInput()">COMMENCER LA PARTIE</button>
-</div>
-
-<div id="name-input-screen">
-    <h2 style="color:var(--blood);">QUEL EST TON NOM ?</h2>
-    <input type="text" id="player-name-field" placeholder="Ton âme..." maxlength="15">
-    <button id="name-submit-btn" onclick="submitPlayerName()">SUIVANT</button>
-</div>
-
-<div id="death-screen">
-    <h1 style="font-size:5rem;">✝</h1>
-    <h1 id="death-msg">TU AS ÉCHOUÉ</h1>
-    <button onclick="location.reload()" style="background:none; border:1px solid #444; color:white; padding:10px 20px; margin-top:20px; cursor:pointer;">RENAÎTRE</button>
-</div>
-
-<div class="scene" id="game">
-    <div class="player-zone">
-        <h2 style="color:#eee; font-size:1rem;" id="player-name-display">JOUEUR</h2>
-        <div style="font-size: 0.7rem; color: #444; margin-bottom: 5px; display: flex; justify-content: space-between; width: 100%;">
-            <span>ÉTAGE <span id="lvl">1</span>/100</span>
-        </div>
-        <div id="player-sudoku-board"></div>
-        <div class="numpad" id="numpad"></div>
+    <div id="screen-start" class="overlay">
+        <h1 style="color:var(--blood); font-size: 3rem; letter-spacing: 5px;">SUDOKU OR DIE</h1>
+        <p style="color:#444">LE DÉMON T'ATTEND.</p>
+        <input type="text" id="name-input" placeholder="TON NOM..." maxlength="12">
+        <button class="btn-start" onclick="startExperience()">ENTRER</button>
     </div>
 
-    <div class="monster-zone">
-        <h2 style="color:var(--blood); font-size:1rem;">LE DÉMON</h2>
-        <div id="monster-image-container">
-            <img id="monster-image">
-            <div id="monster-mouth"></div>
+    <div id="game-container" class="game-container">
+        <div class="zone">
+            <h2 id="display-name" style="margin-bottom: 5px;">JOUEUR</h2>
+            <div id="player-board"></div>
+            <div class="numpad" id="numpad"></div>
         </div>
-        <div id="monster-dialogue">...</div>
-        <div style="font-size: 0.7rem; color: #444; margin-bottom: 5px; display: flex; justify-content: space-between; width: 100%;">
-            <span>PROGRESSION</span>
-            <span style="color:var(--blood)"><span id="threat">0</span>%</span>
+
+        <div class="zone">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Demon&backgroundColor=b6e3f4,c0aede,d1d4f9" class="monster-img" id="monster-face" alt="Demon">
+            <div id="monster-dialogue">...</div>
+            <div class="threat-bar"><div id="progress-fill"></div></div>
+            <div style="font-size: 0.7rem; color: #444;">SA PROGRESSION</div>
+            <div class="mini-sudoku" id="monster-sudoku"></div>
         </div>
-        <div class="threat-bar"><div id="monster-progress"></div></div>
-        <div id="monster-sudoku"></div>
     </div>
-</div>
 
-<script>
-    let level = 1;
-    let selectedTile = null;
-    let solution = [];
-    let progress = 0;
-    let playerName = "Mortel";
-    let audioCtx;
-    let monsterImageElement;
-    let monsterMouthElement;
-    
-    const monsterLines = [
-        "Bienvenue, [NOM_JOUEUR]. Es-tu prêt à perdre ?", "J'entends ta peur, [NOM_JOUEUR].", "Tu as fait une erreur, [NOM_JOUEUR]. Je la sens.",
-        "Le temps presse, [NOM_JOUEUR]. Ton âme m'attend.", "Ne me déçois pas, [NOM_JOUEUR].", "La mort est une option simple pour toi, [NOM_JOUEUR].",
-        "Tes mains tremblent, [NOM_JOUEUR]. Intéressant.", "Un échec de plus, [NOM_JOUEUR], et c'est fini.", "Hé hé hé... [NOM_JOUEUR].",
-        "Ne pense pas t'échapper, [NOM_JOUEUR].", "Je me rapproche, [NOM_JOUEUR]. Sens ma présence.", "Ton sang va couler sur cette grille, [NOM_JOUEUR].",
-        "Je n'aime pas les perdants, [NOM_JOUEUR].", "Quel est ton plus grand regret, [NOM_JOUEUR] ?", "La victoire est impossible, [NOM_JOUEUR].",
-        "Tu es faible, [NOM_JOUEUR]. Très faible.", "Chaque erreur te coûte, [NOM_JOUEUR].", "Regarde ma progression, [NOM_JOUEUR]. Tu ne me rattraperas jamais."
-    ];
+    <script>
+        let level = 1;
+        let pName = "Mortel";
+        let selectedTile = null;
+        let solution = [];
+        let threat = 0;
+        let gameActive = false;
 
-    function showNameInput() {
-        document.getElementById('menu').style.display = 'none';
-        document.getElementById('name-input-screen').style.display = 'flex';
-    }
+        const monsterLines = [
+            "Regarde-moi, [NOM]. J'avance plus vite que toi.",
+            "Tes mains tremblent sur le clavier, [NOM].",
+            "Tu penses vraiment finir l'étage [LVL] ?",
+            "J'entends ton cœur battre jusqu'ici, [NOM].",
+            "C'est une erreur ? Hé hé hé...",
+            "Concentrate-toi, [NOM]. La fin approche."
+        ];
 
-    function submitPlayerName() {
-        const inputName = document.getElementById('player-name-field').value.trim();
-        if (inputName) {
-            playerName = inputName;
-        } else {
-            playerName = "Mortel";
-        }
-        document.getElementById('player-name-display').innerText = playerName.toUpperCase();
-        startGame();
-    }
-
-    function playBicSound() {
-        if(!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'square'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
-        g.gain.setValueAtTime(0.02, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.05);
-    }
-
-    function playLaugh() {
-        if(!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(60, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 1);
-        g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 1);
-    }
-
-    function speak(text) {
-        window.speechSynthesis.cancel();
-        const final_text = text.replace('[NOM_JOUEUR]', playerName);
-        const msg = new SpeechSynthesisUtterance(final_text);
-        msg.lang = 'fr-FR'; msg.pitch = 0.1; msg.rate = 0.65; msg.volume = 0.7;
-        document.getElementById('monster-dialogue').innerText = final_text;
-        
-        msg.onstart = () => { if(monsterMouthElement) monsterMouthElement.style.display = 'block'; };
-        msg.onend = () => { if(monsterMouthElement) monsterMouthElement.style.display = 'none'; };
-        
-        window.speechSynthesis.speak(msg);
-    }
-
-    function startGame() {
-        document.getElementById('name-input-screen').style.display = 'none';
-        document.getElementById('game').style.display = 'grid'; // Utilisez grid pour la disposition côte à côte
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        monsterImageElement = document.getElementById('monster-image');
-        monsterMouthElement = document.getElementById('monster-mouth');
-        generateMonsterImage(); // Générer l'image du monstre
-
-        setInterval(() => { playSfx(40, 'sine', 2, 0.03); }, 3000); // Ambiance respiration
-
-        speak("Bienvenue, " + playerName + ". Dans ton dernier jeu.");
-        setupPlayerBoard();
-        setupMonsterBoard();
-        loadLevel();
-    }
-
-    function playSfx(f, t, d, v) {
-        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
-        o.type = t; o.frequency.value = f; g.gain.value = v;
-        o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + d);
-    }
-
-    function setupPlayerBoard() {
-        const board = document.getElementById("player-sudoku-board");
-        board.innerHTML = "";
-        for (let i = 0; i < 81; i++) {
-            let tile = document.createElement("div");
-            tile.id = "p-" + Math.floor(i/9) + "-" + (i%9);
-            tile.className = "player-tile";
-            tile.onclick = () => {
-                if(selectedTile) selectedTile.classList.remove('selected');
-                selectedTile = tile;
-                tile.classList.add('selected');
-            };
-            board.appendChild(tile);
-        }
-        const pad = document.getElementById("numpad"); pad.innerHTML = "";
-        for (let i = 1; i <= 9; i++) {
-            let btn = document.createElement("button");
-            btn.innerText = i; btn.className = "num-btn";
-            btn.onclick = () => {
-                if(selectedTile && !selectedTile.classList.contains('prefilled')) {
-                    selectedTile.innerText = i;
-                    playBicSound();
-                    checkWin();
-                }
-            };
-            pad.appendChild(btn);
-        }
-    }
-
-    function setupMonsterBoard() {
-        const monsterBoard = document.getElementById("monster-sudoku");
-        monsterBoard.innerHTML = "";
-        for (let i = 0; i < 81; i++) {
-            let tile = document.createElement("div");
-            tile.className = "monster-tile";
-            monsterBoard.appendChild(tile);
-        }
-    }
-
-    function loadLevel() {
-        progress = 0;
-        document.getElementById('lvl').innerText = level;
-        let base = ["534678912", "672195348", "198342567", "859761423", "426853791", "713924856", "961537284", "287419635", "345286179"];
-        solution = base.map(row => row.split(''));
-
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
-                let playerTile = document.getElementById("p-" + r + "-" + c);
-                playerTile.innerText = ""; playerTile.classList.remove('prefilled');
-                let chance = Math.max(0.98 - (level * 0.05), 0.2);
-                if(Math.random() < chance) {
-                    playerTile.innerText = solution[r][c];
-                    playerTile.classList.add('prefilled');
-                }
-            }
-        }
-        
-        clearInterval(window.timer);
-        window.timer = setInterval(() => {
-            progress += 0.4 + (level * 0.1);
-            document.getElementById('monster-progress').style.width = progress + "%";
-            document.getElementById('threat').innerText = Math.floor(progress);
-            if(progress >= 100) gameOver();
+        function startExperience() {
+            const input = document.getElementById('name-input').value.trim();
+            if(input) pName = input;
+            document.getElementById('display-name').innerText = pName;
+            document.getElementById('screen-start').style.display = 'none';
+            document.getElementById('game-container').style.display = 'grid';
             
-            if(Math.floor(progress) % 20 == 0 && progress > 5 && progress < 90) {
-                const line = monsterLines[Math.floor(Math.random()*monsterLines.length)];
-                speak(line);
-                if(Math.random() > 0.5) playLaugh();
-            }
-        }, 1000);
-    }
+            initBoards();
+            loadLevel();
+            speak(`Bienvenue, ${pName}. Commence à remplir, ou je te dévore.`);
+            gameActive = true;
+            startThreatTimer();
+        }
 
-    function checkWin() {
-        let isComplete = true;
-        for (let r = 0; r < 9; r++) {
-            for (let c = 0; c < 9; c++) {
-                if(document.getElementById("p-" + r + "-" + c).innerText != solution[r][c]) isComplete = false;
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'fr-FR';
+            msg.pitch = 0.1; // Très grave
+            msg.rate = 0.7;  // Lent
+            document.getElementById('monster-dialogue').innerText = text;
+            window.speechSynthesis.speak(msg);
+        }
+
+        function initBoards() {
+            const pb = document.getElementById('player-board');
+            const mb = document.getElementById('monster-sudoku');
+            pb.innerHTML = ''; mb.innerHTML = '';
+            
+            for(let i=0; i<81; i++) {
+                let t = document.createElement('div');
+                t.className = 'tile';
+                t.id = `cell-${i}`;
+                t.onclick = () => {
+                    if(selectedTile) selectedTile.classList.remove('selected');
+                    selectedTile = t;
+                    t.classList.add('selected');
+                };
+                pb.appendChild(t);
+                
+                let mt = document.createElement('div');
+                mt.className = 'm-tile';
+                mb.appendChild(mt);
+            }
+
+            const pad = document.getElementById('numpad');
+            pad.innerHTML = '';
+            for(let i=1; i<=9; i++) {
+                let b = document.createElement('button');
+                b.className = 'num-btn';
+                b.innerText = i;
+                b.onclick = () => {
+                    if(selectedTile && !selectedTile.classList.contains('prefilled')) {
+                        selectedTile.innerText = i;
+                        new Audio('https://www.soundjay.com/buttons/sounds/button-20.mp3').play();
+                        checkWin();
+                    }
+                };
+                pad.appendChild(b);
             }
         }
-        if(isComplete) {
-            clearInterval(window.timer);
-            level++;
-            speak("Tu as survécu à l'étage " + (level-1) + ", " + playerName + ". Mais je me rapproche.");
-            setTimeout(loadLevel, 2000);
+
+        function loadLevel() {
+            threat = 0;
+            // Grille de base simplifiée
+            let base = ["534678912", "672195348", "198342567", "859761423", "426853791", "713924856", "961537284", "287419635", "345286179"];
+            solution = base.join('').split('');
+
+            for(let i=0; i<81; i++) {
+                let t = document.getElementById(`cell-${i}`);
+                t.innerText = '';
+                t.classList.remove('prefilled');
+                // Niveau 1 = 78 cases remplies sur 81.
+                let difficulty = Math.max(0.96 - (level * 0.05), 0.2); 
+                if(Math.random() < difficulty) {
+                    t.innerText = solution[i];
+                    t.classList.add('prefilled');
+                }
+            }
         }
-    }
 
-    function gameOver() {
-        clearInterval(window.timer);
-        speak("Il est temps de mourir, " + playerName + ".");
-        setTimeout(() => {
-            document.getElementById('death-screen').style.display = 'flex';
-            document.getElementById('game').style.display = 'none';
-        }, 1000);
-    }
+        function startThreatTimer() {
+            setInterval(() => {
+                if(!gameActive) return;
+                threat += 0.5 + (level * 0.1);
+                document.getElementById('progress-fill').style.width = threat + "%";
+                
+                if(threat >= 100) {
+                    gameActive = false;
+                    speak("TEMPS ÉPUISÉ. ADIEU.");
+                    setTimeout(() => location.reload(), 3000);
+                }
 
-    function generateMonsterImage() {
-        // Cette fonction utilise la capacité de génération d'images pour créer le démon.
-        // La description doit être précise pour obtenir le bon rendu.
-        // Cette commande générera l'image une fois que le jeu est lancé.
-        monsterImageElement.src = `data:image/png;base64,` + `
-`; // Image générée ici
-    }
-</script>
+                if(Math.floor(threat) % 20 === 0) {
+                    let line = monsterLines[Math.floor(Math.random()*monsterLines.length)];
+                    speak(line.replace('[NOM]', pName).replace('[LVL]', level));
+                }
+            }, 1000);
+        }
+
+        function checkWin() {
+            let win = true;
+            for(let i=0; i<81; i++) {
+                if(document.getElementById(`cell-${i}`).innerText != solution[i]) win = false;
+            }
+            if(win) {
+                level++;
+                speak(`Niveau ${level-1} réussi... Ne te réjouis pas trop.`);
+                setTimeout(loadLevel, 2000);
+            }
+        }
+    </script>
 </body>
 </html>
+
