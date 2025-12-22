@@ -3,249 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SUDOKU OR DIE - VOID EDITION</title>
+    <title>SUDOKU OR DIE</title>
     <style>
-        :root { --blood: #660000; --active-blood: #ff0000; }
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        :root { --blood: #600; --bright: #f00; }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; touch-action: none; }
+        body { background: #000; color: #444; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+        /* EFFET VISUEL ANALOGIQUE */
+        .vhs-effect { position: fixed; inset: 0; background: url('https://media.giphy.com/media/oEI9uWUPr9WUM/giphy.gif'); opacity: 0.05; pointer-events: none; z-index: 99; }
         
-        body { 
-            background: #000; color: #888; 
-            font-family: 'Courier New', monospace;
-            margin: 0; overflow: hidden; height: 100vh;
-            display: flex; flex-direction: column; align-items: center;
-        }
+        #dialogue-zone { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; padding: 15px; text-align: center; border-bottom: 1px solid #111; z-index: 10; }
+        #text-content { color: var(--bright); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px #000; }
 
-        /* AMBIANCE VISUELLE */
-        #noise-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: url('https://media.giphy.com/media/oEI9uWUPr9WUM/giphy.gif');
-            opacity: 0.03; pointer-events: none; z-index: 10;
-        }
+        /* JEU */
+        .timer-bg { width: 100%; height: 4px; background: #050505; }
+        #timer-fill { width: 0%; height: 100%; background: var(--blood); transition: width 0.2s linear; }
 
-        /* HEADER & DIALOGUES */
-        #dialogue-container {
-            width: 100%; height: 120px;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px; text-align: center;
-            border-bottom: 1px solid #1a0000;
-        }
-        #monster-text {
-            color: var(--active-blood);
-            font-size: 1.1rem; font-weight: bold;
-            text-transform: uppercase; letter-spacing: 1px;
-            text-shadow: 0 0 8px var(--blood);
-        }
+        #grid { display: grid; grid-template-columns: repeat(9, 1fr); width: 95vw; height: 95vw; max-width: 380px; max-height: 380px; background: #111; border: 2px solid #000; margin: 15px 0; }
+        .tile { background: #000; border: 0.5px solid #111; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #fff; }
+        .tile.fixed { color: #333; }
+        .tile.selected { background: #1a0000; outline: 1px solid var(--blood); color: var(--bright); }
+        .tile.error { animation: glitch 0.2s infinite; color: var(--bright); }
 
-        /* BARRE DE MENACE */
-        .threat-wrap { width: 90%; height: 4px; background: #111; margin: 10px 0; border-radius: 2px; }
-        #threat-fill { width: 0%; height: 100%; background: var(--blood); transition: width 0.5s linear; }
-
-        /* GRILLE SUDOKU */
-        #grid {
-            display: grid; grid-template-columns: repeat(9, 1fr);
-            width: 92vw; height: 92vw; max-width: 380px; max-height: 380px;
-            background: #111; border: 2px solid #222;
-        }
-        .cell {
-            background: #000; border: 0.5px solid #111;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; font-weight: bold; color: #fff;
-        }
-        .cell.fixed { color: #444; background: #050505; }
-        .cell.selected { background: #1a0000; box-shadow: inset 0 0 15px #ff000044; }
-        .cell.err { color: var(--active-blood); animation: shake 0.2s; }
+        @keyframes glitch { 0% { transform: translate(2px,0); } 50% { transform: translate(-2px,0); filter: hue-rotate(90deg); } 100% { transform: translate(0,0); } }
 
         /* CLAVIER */
-        #numpad {
-            display: grid; grid-template-columns: repeat(5, 1fr);
-            gap: 10px; width: 90%; margin-top: 20px;
-        }
-        .key {
-            background: #0a0a0a; border: 1px solid #222; color: #666;
-            padding: 15px 0; border-radius: 5px; font-size: 1.2rem;
-            text-align: center;
-        }
-        .key:active { background: var(--blood); color: #fff; }
+        .keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 95%; max-width: 380px; }
+        .k { background: #080808; border: 1px solid #111; color: #666; padding: 18px 0; font-size: 1.3rem; border-radius: 4px; text-align: center; }
+        .k:active { background: var(--blood); color: #fff; }
 
-        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-4px);} 75% {transform: translateX(4px);} }
+        /* SCREAMER */
+        #screamer { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; align-items: center; justify-content: center; }
+        #screamer img { width: 100%; height: 100%; object-fit: cover; filter: contrast(2) brightness(0.8); }
 
-        /* ECRAN START */
-        #start-screen {
-            position: fixed; inset: 0; background: #000; z-index: 100;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        #start-btn {
-            background: none; border: 1px solid var(--blood); color: var(--blood);
-            padding: 15px 40px; font-size: 1.2rem; cursor: pointer;
-            letter-spacing: 5px;
-        }
+        /* OVERLAY START */
+        #init { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #start-btn { background: none; border: 1px solid var(--blood); color: var(--blood); padding: 15px 40px; font-size: 1.2rem; cursor: pointer; letter-spacing: 3px; margin-top: 30px; }
+        #name-in { background: none; border: none; border-bottom: 1px solid #333; color: #fff; font-size: 1.5rem; text-align: center; outline: none; }
     </style>
 </head>
 <body>
 
-    <div id="noise-overlay"></div>
+<div class="vhs-effect"></div>
+<div id="screamer"><img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXZueXJueXJueXJueXJueXJueXJueXJueXJueXJueXJudSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKv6MgQxcfPzDUY/giphy.gif"></div>
 
-    <div id="start-screen">
-        <h1 style="color:var(--blood); letter-spacing:10px;">VOID</h1>
-        <input type="text" id="user-name" placeholder="NOM DE L'ÂME" 
-               style="background:none; border:none; border-bottom:1px solid #333; color:#fff; text-align:center; margin:20px; outline:none;">
-        <button id="start-btn" onclick="initGame()">ENTRER DANS L'OBSCURITÉ</button>
-    </div>
+<div id="init">
+    <h1 style="color:var(--blood); letter-spacing: 8px;">SUDOKU OR DIE</h1>
+    <input type="text" id="name-in" placeholder="TON NOM..." maxlength="12">
+    <button id="start-btn" onclick="boot()">OFFRIR MON ÂME</button>
+</div>
 
-    <div id="dialogue-container">
-        <div id="monster-text">... ÉCOUTE MA RESPIRATION ...</div>
-    </div>
+<div id="dialogue-zone"><div id="text-content">...</div></div>
+<div class="timer-bg"><div id="timer-fill"></div></div>
+<div id="grid"></div>
+<div class="keys">
+    <script>for(let i=1; i<=9; i++) document.write(`<div class="k" onclick="hit(${i})">${i}</div>`);</script>
+    <div class="k" onclick="hit(0)" style="color:var(--blood)">X</div>
+</div>
 
-    <div class="threat-wrap"><div id="threat-fill"></div></div>
+<script>
+    let pName = "";
+    let cur = null;
+    let threat = 0;
+    let level = 1;
+    let active = false;
+    let lastAct = Date.now();
+    let sol = [];
 
-    <div id="grid"></div>
+    const lines = [
+        "Je sens ton souffle, [N].", "Tes fautes me nourrissent, [N].", "Le noir te regarde, [N].",
+        "Tu es si lent, [N].", "Regarde derrière toi, [N].", "J'entends ton sang, [N].",
+        "Tu ne sortiras pas, [N].", "Encore une erreur, [N] ?", "Ta peur est délicieuse, [N].",
+        "Le vide t'appelle, [N].", "Respire tant que tu peux, [N].", "Je suis dans tes murs, [N].",
+        "Abandonne, [N].", "Tu n'es rien ici, [N].", "Ton heure approche, [N].",
+        "Fais un geste, [N].", "La mort est douce, [N].", "Ne crie pas, [N].",
+        "Je possède ton temps, [N].", "Tu es à moi, [N]."
+    ];
 
-    <div id="numpad">
-        <div class="key" onclick="press(1)">1</div>
-        <div class="key" onclick="press(2)">2</div>
-        <div class="key" onclick="press(3)">3</div>
-        <div class="key" onclick="press(4)">4</div>
-        <div class="key" onclick="press(5)">5</div>
-        <div class="key" onclick="press(6)">6</div>
-        <div class="key" onclick="press(7)">7</div>
-        <div class="key" onclick="press(8)">8</div>
-        <div class="key" onclick="press(9)">9</div>
-        <div class="key" style="background:#1a0000" onclick="press(0)">X</div>
-    </div>
+    function boot() {
+        pName = document.getElementById('name-in').value || "Mortel";
+        document.getElementById('init').style.display = 'none';
+        active = true;
+        setup();
+        loop();
+        breath();
+    }
 
-    <script>
-        let selected = null;
-        let threat = 0;
-        let playerName = "Mortel";
-        let solution = "534678912672195348198342567859761423426853791713924856961537284287419635345286179".split('');
-        
-        // --- 100 DIALOGUES ---
-        const dialogues = [
-            "Je sens ton souffle sur l'écran, [NOM].", "Chaque seconde ici est une année dans mon monde.", 
-            "Pourquoi tes doigts tremblent-ils ?", "Le Sudoku n'est qu'un prétexte pour te garder ici.",
-            "J'aime quand tu réfléchis... ton cerveau devient si chaud.", "Regarde derrière toi. Non, je rigole.",
-            "Tu penses que tu vas sortir d'ici ?", "[NOM], ton rythme cardiaque s'accélère.",
-            "Fais une erreur. Juste une. Pour moi.", "Le vide te regarde aussi.",
-            "Tes yeux fatiguent, n'est-ce pas ?", "Je suis dans les pixels.", "Bientôt, tu ne feras qu'un avec la grille.",
-            "Est-ce que quelqu'un sait que tu joues à ça ?", "J'entends ta respiration.", "Concentrate-toi... ou meurt.",
-            "Chaque chiffre posé est un pas vers ta fin.", "Tu es si lent, [NOM].", "Ma faim est insatiable.",
-            "N'oublie pas de respirer. Moi, je n'en ai pas besoin.", "Tes erreurs ont un goût de fer.",
-            "Le noir autour de la grille... c'est moi.", "Tu es au niveau 1, et tu as déjà peur ?",
-            "Ne ferme pas les yeux.", "Ta solitude est délicieuse.", "Je ne suis pas seul dans cette pièce.",
-            "L'obscurité te va si bien.", "[NOM]... [NOM]... [NOM]...", "Encore un chiffre, petit insecte.",
-            "Tu joues ta vie sur un 9 ?", "Ma patience a des limites.", "Touche encore cette case... pour voir.",
-            "Ton âme est plus complexe que cette grille.", "Le silence est lourd, n'est-ce pas ?",
-            "Je te vois à travers la caméra. Mentir est inutile.", "Même si tu gagnes, je reste là.",
-            "Tic. Tac. Tic. Tac.", "Ton sang circule si vite.", "Je n'ai pas de visage, mais je te souris.",
-            "Veux-tu que je t'aide ? Non.", "Cette case est fausse. Ou peut-être pas.",
-            "Tu as oublié de fermer la porte.", "Il y a quelque chose sous ton lit maintenant.",
-            "Regarde tes mains. Elles appartiennent au vide.", "Ne me fais pas attendre, [NOM].",
-            "Ton nom sera gravé sur cette cellule.", "Tu es prisonnier des chiffres.",
-            "Même la lumière ne peut t'aider ici.", "Je suis ton ombre.", "L'enfer est un Sudoku sans fin.",
-            "Arrête de cligner des yeux.", "Tu es si fragile.", "Je peux sentir ta peur monter.",
-            "Un mauvais mouvement et tout s'arrête.", "Est-ce que tu m'entends vraiment ?",
-            "Je suis le murmure dans tes oreilles.", "Pourquoi tu ne pars pas ?", "Parce que tu ne peux pas.",
-            "Tu es à moi.", "Le vide appelle le vide.", "Tes pensées sont si bruyantes.",
-            "Le 5 ? Vraiment ?", "Ta logique est pitoyable.", "Même un enfant ferait mieux.",
-            "Je vais te briser.", "Pas de sortie. Pas d'issue.", "Abandonne.", "Laisse-moi entrer.",
-            "Ton écran est une prison.", "Je caresse ton esprit.", "Tu as froid ?", "La température baisse, n'est-ce pas ?",
-            "Tu es le prochain.", "Rien ne peut te sauver.", "Pas même la victoire.", "Je suis déjà derrière toi.",
-            "Ton nom résonne dans l'abysse.", "Tu n'es qu'une suite de chiffres.", "La grille se nourrit de toi.",
-            "Ton agonie est ma musique.", "Chante pour moi, [NOM].", "Pose ce 7. Je t'attends.",
-            "La fin est proche.", "Le 0 n'existe pas ici.", "Comme ton avenir.", "Je ris de ta confusion.",
-            "Tu es perdu ?", "Laisse-toi aller.", "Le noir est si paisible.", "Ne lutte plus.",
-            "L'oxygène devient rare.", "Ton temps est écoulé.", "Je te tiens.", "À jamais.",
-            "Dernière chance.", "Adieu, [NOM].", "Nous y sommes enfin.", "Bienvenue chez moi."
-        ];
+    function setup() {
+        const g = document.getElementById('grid'); g.innerHTML = '';
+        let base = "534678912672195348198342567859761423426853791713924856961537284287419635345286179".split('');
+        sol = base;
+        let fill = Math.max(78 - (level * 8), 10);
+        for(let i=0; i<81; i++) {
+            let t = document.createElement('div');
+            t.className = 'tile';
+            if(Math.random() * 81 < fill) { t.innerText = sol[i]; t.classList.add('fixed'); }
+            t.onclick = () => { if(!t.classList.contains('fixed')) { if(cur) cur.classList.remove('selected'); cur = t; t.classList.add('selected'); lastAct = Date.now(); } };
+            g.appendChild(t);
+        }
+    }
 
-        // --- AUDIO ---
-        const breathAudio = new Audio('https://www.soundjay.com/human/sounds/human-breath-1.mp3'); // Simulation
-        breathAudio.loop = true;
+    function hit(n) {
+        if(!cur || !active) return;
+        lastAct = Date.now();
+        let idx = Array.from(document.getElementById('grid').children).indexOf(cur);
+        if(n === 0) { cur.innerText = ""; return; }
+        cur.innerText = n;
+        if(n != sol[idx]) {
+            cur.classList.add('error');
+            threat += 10;
+            speak("Erreur fatale, " + pName);
+            setTimeout(() => cur.classList.remove('error'), 400);
+        } else {
+            cur.style.color = "#0f0";
+            check();
+        }
+    }
 
-        function initGame() {
-            playerName = document.getElementById('user-name').value || "Mortel";
-            document.getElementById('start-screen').style.display = 'none';
-            breathAudio.play();
-            
-            const grid = document.getElementById('grid');
-            for(let i=0; i<81; i++) {
-                let cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.id = 'c' + i;
-                if(Math.random() > 0.4) {
-                    cell.innerText = solution[i];
-                    cell.classList.add('fixed');
-                }
-                cell.onclick = () => {
-                    if(!cell.classList.contains('fixed')) {
-                        if(selected) selected.classList.remove('selected');
-                        selected = cell;
-                        selected.classList.add('selected');
-                    }
-                };
-                grid.appendChild(cell);
-            }
-            
-            setInterval(gameLoop, 1000);
+    function loop() {
+        if(!active) return;
+        threat += (0.12 * level);
+        document.getElementById('timer-fill').style.width = threat + "%";
+
+        // GESTION INACTIVITÉ (SCREAMER)
+        let idle = Date.now() - lastAct;
+        if(idle > 20000) { triggerScreamer(); return; }
+
+        if(Math.random() < 0.01) {
+            let l = lines[Math.floor(Math.random()*lines.length)].replace("[N]", pName);
+            document.getElementById('text-content').innerText = l;
+            speak(l);
         }
 
-        function gameLoop() {
-            threat += 0.4;
-            document.getElementById('threat-fill').style.width = threat + '%';
-            
-            // Accélération de la respiration
-            breathAudio.playbackRate = 1 + (threat / 50);
+        if(threat >= 100) die();
+        else setTimeout(loop, 100);
+    }
 
-            // Dialogue aléatoire
-            if(Math.random() > 0.85) {
-                let line = dialogues[Math.floor(Math.random()*dialogues.length)];
-                let text = line.replace('[NOM]', playerName);
-                document.getElementById('monster-text').innerText = text;
-                speak(text);
-            }
+    function breath() {
+        if(!active) return;
+        let b = new Audio('https://www.soundjay.com/human/sounds/human-breath-1.mp3');
+        b.volume = 0.3;
+        b.play().catch(()=>{});
+        setTimeout(breath, Math.max(500, 2000 - (threat * 15)));
+    }
 
-            if(threat >= 100) {
-                document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:45vh;'>ÂME CONSUMÉE</h1>";
-                speak("Ton temps est fini. Je te prends.");
-                setTimeout(() => location.reload(), 3000);
-            }
+    function speak(t) {
+        window.speechSynthesis.cancel();
+        let m = new SpeechSynthesisUtterance(t);
+        m.lang = 'fr-FR'; m.pitch = 0.1; m.rate = 0.6;
+        window.speechSynthesis.speak(m);
+    }
+
+    function triggerScreamer() {
+        active = false;
+        let s = document.getElementById('screamer');
+        s.style.display = 'flex';
+        let a = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-creature-roar-278.mp3');
+        a.volume = 1; a.play();
+        speak("JE T'AI TROUVÉ, " + pName);
+        setTimeout(() => location.reload(), 3000);
+    }
+
+    function check() {
+        let tiles = document.querySelectorAll('.tile');
+        let win = true;
+        tiles.forEach((t, i) => { if(t.innerText != sol[i]) win = false; });
+        if(win) {
+            level++; threat = Math.max(0, threat - 40);
+            speak("Étage " + (level-1) + " fini. Tu ne tiendras pas le suivant, " + pName);
+            setup();
         }
+    }
 
-        function press(n) {
-            if(!selected) return;
-            let idx = selected.id.substring(1);
-            if(n === 0) {
-                selected.innerText = "";
-            } else {
-                selected.innerText = n;
-                if(n != solution[idx]) {
-                    selected.classList.add('err');
-                    threat += 5;
-                    speak("Erreur fatale.");
-                    setTimeout(() => selected.classList.remove('err'), 300);
-                } else {
-                    selected.style.color = "#00ff00";
-                    checkWin();
-                }
-            }
-        }
-
-        function speak(t) {
-            window.speechSynthesis.cancel();
-            let m = new SpeechSynthesisUtterance(t);
-            m.lang = 'fr-FR'; m.pitch = 0.1; m.rate = 0.7;
-            window.speechSynthesis.speak(m);
-        }
-
-        function checkWin() {
-            let win = true;
-            for(let i=0; i<81; i++) {
-                if(document.getElementById('c'+i).innerText != solution[i]) win = false;
-            }
-            if(win) {
-                document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:45vh;'>ÉCHAPPÉ... POUR L'INSTANT</h1>";
-            }
-        }
-    </script>
+    function die() {
+        active = false;
+        document.body.innerHTML = `<h1 style="color:red; margin-top:40vh; text-align:center;">ÂME DÉVORÉE, ${pName}</h1>`;
+        speak("Ton temps est fini, " + pName);
+        setTimeout(() => location.reload(), 4000);
+    }
+</script>
 </body>
 </html>
