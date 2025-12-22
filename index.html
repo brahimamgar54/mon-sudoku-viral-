@@ -12,7 +12,6 @@
             --blood: #8a0b0b;
             --text: #a0a0a0;
             --highlight: #e0e0e0;
-            --shadow: #000;
         }
 
         * { user-select: none; box-sizing: border-box; touch-action: none; -webkit-tap-highlight-color: transparent; }
@@ -25,96 +24,114 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
 
-        /* AMBIANCE VISUELLE */
+        /* --- AMBIANCE --- */
         #noise {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABZJREFUeNpi2r9//38gYGAEESAAEGAAasgJOgzOKCoAAAAASUVORK5CYII=');
-            opacity: 0.05; pointer-events: none; z-index: 999;
+            opacity: 0.08; pointer-events: none; z-index: 999;
         }
         #vignette {
             position: fixed; inset: 0;
-            background: radial-gradient(circle, transparent 50%, #000 100%);
+            background: radial-gradient(circle, transparent 40%, #000 100%);
             pointer-events: none; z-index: 900;
-            transition: box-shadow 0.5s;
+            transition: box-shadow 0.2s;
         }
-        .pulse-red { box-shadow: inset 0 0 100px var(--blood); }
 
-        /* UI JEU */
+        /* --- UI JEU --- */
         #ui-layer { 
             display: none; width: 100%; max-width: 450px; height: 100%; 
             flex-direction: column; align-items: center; padding: 10px; z-index: 10;
         }
 
-        /* MONSTRE & DIALOGUE */
         #demon-eye {
             width: 100%; text-align: center; margin-bottom: 10px;
-            font-size: 0.8rem; color: var(--blood); text-shadow: 0 0 5px var(--blood);
+            font-size: 0.9rem; color: var(--blood); text-shadow: 0 0 5px var(--blood);
             min-height: 60px; display: flex; align-items: center; justify-content: center;
-            border-bottom: 1px solid #222; padding-bottom: 10px;
+            border-bottom: 1px solid #333; padding-bottom: 10px;
+            transition: color 0.3s;
         }
 
-        /* PROGRESSION */
         .status-bar {
-            width: 100%; display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem;
+            width: 100%; display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.8rem; letter-spacing: 1px;
         }
         .stress-container {
-            width: 100%; height: 4px; background: #222; margin-bottom: 15px; position: relative;
+            width: 100%; height: 6px; background: #111; margin-bottom: 15px; position: relative; border: 1px solid #333;
         }
         #stress-bar {
             width: 0%; height: 100%; background: var(--blood);
-            transition: width 0.2s linear;
-            box-shadow: 0 0 8px var(--blood);
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px var(--blood);
         }
 
-        /* GRILLE */
+        /* --- GRILLE --- */
         #grid {
             display: grid; grid-template-columns: repeat(9, 1fr);
-            gap: 1px; background: var(--text); border: 2px solid var(--text);
-            width: 100%; aspect-ratio: 1;
+            gap: 1px; background: #333; border: 2px solid #555;
+            width: 100%; aspect-ratio: 1; margin-bottom: 10px;
         }
         .cell {
-            background: #111; display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem; color: #fff; cursor: pointer; transition: background 0.1s;
+            background: #080808; display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; color: #fff; cursor: pointer; transition: background 0.1s;
         }
-        /* Bordures épaisses pour les blocs 3x3 */
-        .cell:nth-child(3n) { border-right: 2px solid #444; }
+        .cell:nth-child(3n) { border-right: 2px solid #555; }
         .cell:nth-child(9n) { border-right: none; }
         .cell:nth-child(n+19):nth-child(-n+27), 
-        .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #444; }
+        .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #555; }
 
-        .cell.fixed { color: #555; background: #0a0a0a; pointer-events: none; }
-        .cell.selected { background: #222; box-shadow: inset 0 0 10px var(--blood); }
-        .cell.error { background: #400; animation: shake 0.3s; }
-        .cell.correct { color: #0f0; text-shadow: 0 0 5px #0f0; }
+        .cell.fixed { color: #444; background: #050505; pointer-events: none; }
+        .cell.selected { background: #1a1a1a; box-shadow: inset 0 0 15px #300; }
+        .cell.error { background: #500; animation: shake 0.3s; }
+        .cell.correct { color: #0f0; text-shadow: 0 0 8px #0f0; animation: pop 0.2s; }
 
-        /* CLAVIER */
+        /* --- CLAVIER --- */
         #keypad {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
-            width: 100%; margin-top: 20px;
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+            width: 100%; flex-grow: 1; max-height: 150px;
         }
         .key {
-            background: #111; border: 1px solid #333; color: #aaa;
-            padding: 15px 0; text-align: center; font-size: 1.2rem;
-            border-radius: 4px; cursor: pointer;
+            background: #111; border: 1px solid #333; color: #888;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; border-radius: 2px; cursor: pointer;
         }
-        .key:active { background: #eee; color: #000; transform: scale(0.95); }
+        .key:active { background: #333; color: #fff; transform: scale(0.95); }
 
-        /* INTRO SCREEN */
+        /* --- INTRO & NAME INPUT --- */
         #intro-screen {
             position: fixed; inset: 0; background: #000; z-index: 2000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             text-align: center; padding: 20px;
         }
+        
+        input[type="text"] {
+            background: transparent; border: none; border-bottom: 2px solid var(--blood);
+            color: #fff; font-family: 'Courier Prime', monospace; font-size: 1.5rem;
+            text-align: center; width: 200px; margin: 20px 0; outline: none;
+        }
+        
         .fade-in { animation: fadeIn 2s forwards; opacity: 0; }
         @keyframes fadeIn { to { opacity: 1; } }
         @keyframes shake { 0%, 100% {transform:translateX(0)} 25% {transform:translateX(-5px)} 75% {transform:translateX(5px)} }
+        @keyframes pop { 0% {transform:scale(1)} 50% {transform:scale(1.3)} 100% {transform:scale(1)} }
 
         button.start {
-            margin-top: 30px; background: transparent; border: 1px solid var(--blood);
-            color: var(--blood); padding: 15px 30px; font-family: inherit; font-size: 1.2rem;
+            margin-top: 20px; background: #100; border: 1px solid var(--blood);
+            color: var(--blood); padding: 15px 40px; font-family: inherit; font-size: 1.2rem;
             cursor: pointer; letter-spacing: 2px; transition: 0.3s;
         }
-        button.start:hover { background: var(--blood); color: #000; box-shadow: 0 0 20px var(--blood); }
+        button.start:hover { background: var(--blood); color: #000; box-shadow: 0 0 30px var(--blood); }
+        
+        .skip-hint {
+            position: absolute; bottom: 20px; color: #444; font-size: 0.7rem; cursor: pointer;
+        }
+
+        /* --- GAME OVER --- */
+        #game-over {
+            display: none; position: fixed; inset: 0; background: #200; z-index: 3000;
+            flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; animation: pulseRed 2s infinite;
+        }
+        @keyframes pulseRed { 0% {background:#200} 50% {background:#300} 100% {background:#200} }
+
     </style>
 </head>
 <body>
@@ -123,18 +140,22 @@
 <div id="vignette"></div>
 
 <div id="intro-screen">
-    <div id="intro-text" style="max-width: 600px;"></div>
-    <button id="btn-start" class="start" style="display:none" onclick="startGame()">OUVRIR LES YEUX</button>
+    <div id="intro-content"></div>
+    <div id="name-input-section" style="display:none; flex-direction: column; align-items: center;">
+        <p style="color:#888; font-size:0.9rem;">COMMENT DOIS-JE T'APPELER AVANT TA MORT ?</p>
+        <input type="text" id="player-name" maxlength="10" placeholder="..." autocomplete="off">
+        <button class="start" onclick="validateName()">ENTRER</button>
+    </div>
 </div>
 
 <div id="ui-layer">
     <div class="status-bar">
-        <span>NIVEAU <span id="lvl-disp">1</span>/100</span>
-        <span style="color:var(--blood)">SURVIE</span>
+        <span>NIVEAU <span id="lvl-disp">1</span></span>
+        <span id="player-disp" style="color:#666">MORTEL</span>
     </div>
     <div class="stress-container"><div id="stress-bar"></div></div>
     
-    <div id="demon-eye">"Montre-moi ce que tu vaux..."</div>
+    <div id="demon-eye">"Ne me fais pas attendre..."</div>
 
     <div id="grid"></div>
 
@@ -148,23 +169,31 @@
         <div class="key" onclick="input(7)">7</div>
         <div class="key" onclick="input(8)">8</div>
         <div class="key" onclick="input(9)">9</div>
-        <div class="key" onclick="input('X')" style="color:var(--blood)">X</div>
+        <div class="key" onclick="input('X')" style="color:var(--blood); border-color:var(--blood)">X</div>
     </div>
 </div>
 
+<div id="game-over">
+    <h1 style="color:#fff; font-size:3rem; margin:0">TU ES MORT</h1>
+    <p id="death-msg" style="color:#ffaaaa; margin-top:10px"></p>
+    <button class="start" onclick="location.reload()">RECOMMENCER</button>
+</div>
+
 <script>
-    // --- VARIABLES GLOBALES ---
+    // --- STATE MANAGER ---
     const STATE = {
+        name: localStorage.getItem('sudoku_demon_name') || "",
+        hasPlayed: localStorage.getItem('sudoku_demon_played') === "true",
         level: 1,
         stress: 0,
         grid: [],
         solution: [],
-        selectedCell: null,
+        selectedIdx: null,
         active: false,
-        name: "Mortel"
+        lastActionTime: Date.now()
     };
 
-    // --- AUDIO ENGINE (Web Audio API) ---
+    // --- AUDIO ENGINE ---
     const AudioEngine = {
         ctx: null,
         droneOsc: null,
@@ -174,151 +203,178 @@
             window.AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
             
-            // Création du bourdonnement d'ambiance (Drone)
+            // Drone d'ambiance sombre
             this.droneOsc = this.ctx.createOscillator();
             this.droneGain = this.ctx.createGain();
             this.droneOsc.type = 'sawtooth';
-            this.droneOsc.frequency.value = 40; // Très grave
+            this.droneOsc.frequency.value = 40;
             
-            // Filtre passe-bas pour étouffer le son
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'lowpass';
-            filter.frequency.value = 120;
+            filter.frequency.value = 100;
 
             this.droneOsc.connect(filter);
             filter.connect(this.droneGain);
             this.droneGain.connect(this.ctx.destination);
             
-            this.droneGain.gain.value = 0; // Volume départ
+            this.droneGain.gain.value = 0;
             this.droneOsc.start();
         },
 
         startAmbience: function() {
-            this.droneGain.gain.setTargetAtTime(0.15, this.ctx.currentTime, 2);
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+            this.droneGain.gain.setTargetAtTime(0.2, this.ctx.currentTime, 3);
         },
 
-        updateStress: function(stressLevel) {
-            // Le son devient plus aigu et fort avec le stress
-            let freq = 40 + (stressLevel * 0.5); 
-            let vol = 0.15 + (stressLevel / 300);
-            this.droneOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.5);
-            this.droneGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.5);
-        },
-
-        playPenSound: function() {
-            // Bruit de clic de stylo sec
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.05);
+        updateStress: function(stress) {
+            // Le son devient instable, plus aigu et "dissonant"
+            let targetFreq = 40 + (stress * 0.8);
+            let targetVol = 0.2 + (stress / 200);
             
-            gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
-
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.05);
+            // Micro-vibrations pour simuler l'instabilité
+            let wobble = Math.random() * (stress/10);
+            
+            this.droneOsc.frequency.setTargetAtTime(targetFreq + wobble, this.ctx.currentTime, 0.5);
+            this.droneGain.gain.setTargetAtTime(targetVol, this.ctx.currentTime, 0.5);
         },
 
-        playError: function() {
+        sfxClick: function() {
+            const t = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
+            const g = this.ctx.createGain();
+            osc.frequency.setValueAtTime(800, t);
+            osc.frequency.exponentialRampToValueAtTime(100, t + 0.05);
+            g.gain.setValueAtTime(0.1, t);
+            g.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(); osc.stop(t + 0.06);
+        },
+
+        sfxError: function() {
+            const t = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const g = this.ctx.createGain();
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(100, this.ctx.currentTime);
-            osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 0.3);
+            osc.frequency.setValueAtTime(150, t);
+            osc.frequency.linearRampToValueAtTime(50, t + 0.3);
+            g.gain.setValueAtTime(0.5, t);
+            g.gain.linearRampToValueAtTime(0, t + 0.3);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(); osc.stop(t + 0.3);
         },
 
-        playWin: function() {
+        sfxWin: function() {
+            const t = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.frequency.setValueAtTime(200, this.ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 1);
-            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-            gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 1);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start();
-            osc.stop(this.ctx.currentTime + 1);
+            const g = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, t);
+            osc.frequency.exponentialRampToValueAtTime(800, t + 0.2);
+            g.gain.setValueAtTime(0.2, t);
+            g.gain.linearRampToValueAtTime(0, t + 0.5);
+            osc.connect(g); g.connect(this.ctx.destination);
+            osc.start(); osc.stop(t + 0.5);
         }
     };
 
-    // --- DIALOGUES DU DÉMON ---
-    const SPEECH = {
-        lastSpeakTime: 0,
+    // --- DEMON AI (DIALOGUES) ---
+    const DEMON = {
+        lastSpeech: 0,
         
-        speak: function(text, force = false) {
+        say: function(text, force = false, anger = 0) {
             let now = Date.now();
-            if (!force && now - this.lastSpeakTime < 4000) return; // Anti-spam
-            
-            this.lastSpeakTime = now;
-            
-            // Affichage visuel
-            const ui = document.getElementById('demon-eye');
-            ui.innerText = text;
-            ui.style.animation = "none";
-            ui.offsetHeight; /* trigger reflow */
-            ui.style.animation = "shake 0.5s";
+            if (!force && now - this.lastSpeech < 3500) return;
+            this.lastSpeech = now;
 
-            // Synthèse vocale
+            // Injection du nom
+            let finalTxt = text.replace("{name}", STATE.name || "Mortel");
+
+            // UI
+            const el = document.getElementById('demon-eye');
+            el.innerText = finalTxt;
+            el.style.color = anger > 0 ? "#f00" : "var(--blood)";
+            el.style.animation = "none";
+            el.offsetHeight; 
+            el.style.animation = "shake 0.4s";
+
+            // TTS (Text To Speech)
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'fr-FR';
-            utterance.pitch = 0.1; // Le plus grave possible
-            utterance.rate = 0.7;  // Lent
-            utterance.volume = 1;
-
-            // Essayer de trouver une voix française
+            const utt = new SpeechSynthesisUtterance(finalTxt);
+            utt.lang = 'fr-FR';
+            utt.pitch = 0.1 + (anger * 0.1); // Plus aigu si énervé
+            utt.rate = 0.8;
+            utt.volume = 1;
+            
+            // Choix de voix (préférer voix masculine/grave si dispo)
             let voices = window.speechSynthesis.getVoices();
-            let frVoice = voices.find(v => v.lang.includes('fr'));
-            if(frVoice) utterance.voice = frVoice;
-
-            window.speechSynthesis.speak(utterance);
+            let fr = voices.find(v => v.lang.includes('fr'));
+            if(fr) utt.voice = fr;
+            
+            window.speechSynthesis.speak(utt);
         },
 
-        lines: {
-            idle: ["Je m'ennuie...", "Ta peur sent le miel.", "Tic, tac. Tic, tac.", "Tu respires trop fort.", "Concentre-toi, viande.", "100 niveaux... tu n'y arriveras jamais."],
-            error: ["Idiot !", "Tu ne sais pas compter ?", "Encore raté.", "J'ai faim...", "Tu me déçois.", "Regarde ce que tu fais !", "Pathétique."],
-            good: ["Pas mal.", "Chanceux.", "Continue.", "Hmpf.", "Ne t'arrête pas."],
-            panic: ["Ta main tremble.", "La mort approche.", "Abandonne.", "Laisse-toi faire."]
+        checkIdle: function() {
+            if (Date.now() - STATE.lastActionTime > 12000 && STATE.active) {
+                let lines = [
+                    "{name}...",
+                    "Tu dors ?",
+                    "Le temps coule, {name}.",
+                    "Je m'ennuie.",
+                    "Joue."
+                ];
+                this.say(lines[Math.floor(Math.random() * lines.length)]);
+                STATE.lastActionTime = Date.now(); // Reset pour pas spammer
+            }
+        },
+
+        reactError: function() {
+            let lines = [
+                "Non, {name} !",
+                "Idiot.",
+                "Tu trembles.",
+                "Regarde bien.",
+                "Encore une erreur.",
+                "Pathétique."
+            ];
+            this.say(lines[Math.floor(Math.random() * lines.length)], true, 1);
+        },
+
+        reactWin: function() {
+            let lines = [
+                "Hmm.",
+                "Pas mal, {name}.",
+                "Suivant.",
+                "Ne te relâche pas.",
+                "Tu as de la chance."
+            ];
+            this.say(lines[Math.floor(Math.random() * lines.length)]);
         }
     };
 
-    // --- SUDOKU LOGIC (BACKTRACKING) ---
+    // --- SUDOKU ENGINE ---
     const Sudoku = {
-        generate: function(difficulty) {
+        generate: function(holes) {
             let board = Array(81).fill(0);
-            this.solveHelper(board);
-            let solution = [...board];
+            this.fill(board);
+            let sol = [...board];
             
-            // Retirer des chiffres (trous)
-            let attempts = difficulty; 
-            while (attempts > 0) {
-                let idx = Math.floor(Math.random() * 81);
-                if (board[idx] !== 0) {
-                    board[idx] = 0;
-                    attempts--;
-                }
+            // Création des trous
+            let attempts = holes;
+            while(attempts > 0) {
+                let i = Math.floor(Math.random()*81);
+                if(board[i]!==0) { board[i]=0; attempts--; }
             }
-            return { puzzle: board, solution: solution };
+            return { p: board, s: sol };
         },
-
-        solveHelper: function(board) {
-            for (let i = 0; i < 81; i++) {
-                if (board[i] === 0) {
-                    let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
-                    for (let n of nums) {
-                        if (this.isValid(board, i, n)) {
-                            board[i] = n;
-                            if (this.solveHelper(board)) return true;
-                            board[i] = 0;
+        fill: function(b) {
+            for(let i=0; i<81; i++) {
+                if(b[i]===0) {
+                    let nums = [1,2,3,4,5,6,7,8,9].sort(()=>Math.random()-0.5);
+                    for(let n of nums) {
+                        if(this.valid(b,i,n)) {
+                            b[i]=n;
+                            if(this.fill(b)) return true;
+                            b[i]=0;
                         }
                     }
                     return false;
@@ -326,201 +382,191 @@
             }
             return true;
         },
-
-        isValid: function(board, idx, num) {
-            let row = Math.floor(idx / 9);
-            let col = idx % 9;
-            let blockRow = Math.floor(row / 3) * 3;
-            let blockCol = Math.floor(col / 3) * 3;
-
-            for (let i = 0; i < 9; i++) {
-                if (board[row * 9 + i] === num) return false; // Ligne
-                if (board[i * 9 + col] === num) return false; // Colonne
-                let curBlock = (blockRow + Math.floor(i / 3)) * 9 + (blockCol + (i % 3));
-                if (board[curBlock] === num) return false; // Carré
+        valid: function(b,i,n) {
+            let r=Math.floor(i/9), c=i%9;
+            for(let k=0; k<9; k++) {
+                if(b[r*9+k]===n) return false;
+                if(b[k*9+c]===n) return false;
+                let br=Math.floor(r/3)*3, bc=Math.floor(c/3)*3;
+                if(b[(br+Math.floor(k/3))*9+(bc+k%3)]===n) return false;
             }
             return true;
         }
     };
 
-    // --- GAME LOOP ---
-    async function introSequence() {
-        const txtDiv = document.getElementById('intro-text');
-        const lines = [
-            "Réveille-toi...",
-            "Tu es dans ma pièce maintenant.",
-            "Face à toi, une grille.",
-            "Résous 100 niveaux et je te libère.",
-            "Échoue...",
-            "Et je dévore ton âme."
-        ];
+    // --- FLOW DU JEU ---
+    window.onload = function() {
+        if (STATE.hasPlayed && STATE.name) {
+            // Joueur existant : skip intro cinématique, aller direct à l'input nom (pré-rempli)
+            document.getElementById('intro-content').style.display = 'none';
+            document.getElementById('player-name').value = STATE.name;
+            document.getElementById('name-input-section').style.display = 'flex';
+        } else {
+            // Nouveau joueur : Intro complète
+            playIntroSequence();
+        }
+    };
 
-        for (let line of lines) {
-            txtDiv.innerHTML = `<h2 class="fade-in" style="color:#fff">${line}</h2>`;
+    async function playIntroSequence() {
+        const txt = document.getElementById('intro-content');
+        const lines = ["Initialisation...", "Sujet détecté.", "Tu es dans mon purgatoire.", "Prouve ta valeur."];
+        
+        for (let l of lines) {
+            txt.innerHTML = `<h2 class="fade-in" style="color:#fff; letter-spacing:3px">${l}</h2>`;
             await new Promise(r => setTimeout(r, 2500));
         }
+        document.getElementById('intro-content').style.display = 'none';
+        document.getElementById('name-input-section').style.display = 'flex';
+    }
+
+    function validateName() {
+        let inp = document.getElementById('player-name');
+        let val = inp.value.trim().toUpperCase();
+        if (val.length < 2) val = "MORTEL";
         
-        document.getElementById('btn-start').style.display = 'inline-block';
+        STATE.name = val;
+        localStorage.setItem('sudoku_demon_name', STATE.name);
+        localStorage.setItem('sudoku_demon_played', "true");
+        
+        startGame();
     }
 
     function startGame() {
         AudioEngine.init();
         AudioEngine.startAmbience();
+        
         document.getElementById('intro-screen').style.display = 'none';
         document.getElementById('ui-layer').style.display = 'flex';
+        document.getElementById('player-disp').innerText = STATE.name;
+        
         STATE.active = true;
-        newLevel();
-        gameLoop();
+        STATE.level = 1;
+        DEMON.say("Bienvenue, {name}. Commençons doucement.");
+        startLevel();
+        loop();
     }
 
-    function newLevel() {
-        STATE.stress = Math.max(0, STATE.stress - 20); // Bonus répit
+    function startLevel() {
+        STATE.stress = Math.max(0, STATE.stress - 30); // Récompense de stress
         
-        // Difficulté croissante (trous à remplir)
-        let holes = 20 + Math.floor(STATE.level / 2); 
-        if(holes > 55) holes = 55;
+        // --- COURBE DE DIFFICULTÉ ---
+        // Niveau 1 : très facile (5 trous) -> gratification instantanée
+        // Niveau 10 : 35 trous
+        // Max 55 trous
+        let holes = 5 + Math.floor(STATE.level * 3);
+        if (holes > 55) holes = 55;
+        if (STATE.level === 1) holes = 5; // Force easy mode start
 
         let data = Sudoku.generate(holes);
-        STATE.grid = data.puzzle;
-        STATE.solution = data.solution;
+        STATE.grid = data.p;
+        STATE.solution = data.s;
         
         renderGrid();
         document.getElementById('lvl-disp').innerText = STATE.level;
-        SPEECH.speak("Niveau " + STATE.level + ". Commence.");
     }
 
     function renderGrid() {
-        const gridEl = document.getElementById('grid');
-        gridEl.innerHTML = '';
-        STATE.grid.forEach((val, idx) => {
-            let div = document.createElement('div');
-            div.className = 'cell';
-            if(val !== 0) {
-                div.innerText = val;
-                div.classList.add('fixed');
-            } else {
-                div.onclick = () => selectCell(div, idx);
-            }
-            gridEl.appendChild(div);
+        const g = document.getElementById('grid');
+        g.innerHTML = '';
+        STATE.grid.forEach((v, i) => {
+            let d = document.createElement('div');
+            d.className = 'cell' + (v!==0 ? ' fixed' : '');
+            if(v!==0) d.innerText = v;
+            else d.onclick = () => select(d, i);
+            g.appendChild(d);
         });
-        STATE.selectedCell = null;
+        STATE.selectedIdx = null;
     }
 
-    function selectCell(div, idx) {
-        if (!STATE.active) return;
-        // Retirer sélection précédente
-        document.querySelectorAll('.cell.selected').forEach(c => c.classList.remove('selected'));
-        div.classList.add('selected');
+    function select(el, idx) {
+        if(!STATE.active) return;
+        document.querySelectorAll('.selected').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
         STATE.selectedIdx = idx;
-        
-        // Bruit léger de focus
-        // (Optionnel, gardons le silence pour la tension)
     }
 
     function input(val) {
-        if (STATE.selectedIdx === null || !STATE.active) return;
+        if(STATE.selectedIdx===null || !STATE.active) return;
+        STATE.lastActionTime = Date.now();
         
-        let idx = STATE.selectedIdx;
-        let cell = document.getElementById('grid').children[idx];
-
-        if (val === 'X') {
+        let cell = document.getElementById('grid').children[STATE.selectedIdx];
+        
+        if(val === 'X') {
             cell.innerText = '';
-            STATE.grid[idx] = 0;
+            STATE.grid[STATE.selectedIdx] = 0;
             return;
         }
 
-        // SFX Stylo
-        AudioEngine.playPenSound();
+        AudioEngine.sfxClick();
 
-        // Vérification immédiate
-        if (val === STATE.solution[idx]) {
+        if(val === STATE.solution[STATE.selectedIdx]) {
+            // CORRECT
             cell.innerText = val;
-            cell.style.color = "#0f0"; // Petit feedback visuel rapide
-            STATE.grid[idx] = val;
-            checkWin();
+            cell.className = 'cell correct';
+            STATE.grid[STATE.selectedIdx] = val;
+            
+            // Check Win global
+            if(!STATE.grid.includes(0)) {
+                AudioEngine.sfxWin();
+                STATE.level++;
+                DEMON.reactWin();
+                setTimeout(startLevel, 1000);
+            }
         } else {
             // ERREUR
-            AudioEngine.playError();
-            STATE.stress += 15;
+            AudioEngine.sfxError();
             cell.classList.add('error');
-            setTimeout(() => cell.classList.remove('error'), 400);
+            setTimeout(()=>cell.classList.remove('error'), 400);
             
-            let badLines = SPEECH.lines.error;
-            SPEECH.speak(badLines[Math.floor(Math.random() * badLines.length)], true);
+            // Punition stress : augmente avec le niveau
+            let punish = 15 + (STATE.level * 2);
+            STATE.stress += punish;
+            DEMON.reactError();
         }
     }
 
-    function checkWin() {
-        // Est-ce que la grille est pleine et correcte ?
-        // Comme on vérifie à chaque input, il suffit de voir s'il reste des 0
-        if (!STATE.grid.includes(0)) {
-            AudioEngine.playWin();
-            STATE.level++;
-            if (STATE.level > 100) {
-                winGame();
-            } else {
-                let goodLines = SPEECH.lines.good;
-                SPEECH.speak(goodLines[Math.floor(Math.random() * goodLines.length)]);
-                setTimeout(newLevel, 1000);
-            }
-        }
-    }
+    function loop() {
+        if(!STATE.active) return;
 
-    function gameLoop() {
-        if (!STATE.active) return;
-
-        // Augmentation stress
-        // Plus le niveau est haut, plus le stress monte vite
-        let speed = 0.05 + (STATE.level * 0.005);
+        // --- STRESS BUILDUP ---
+        // Niveau 1 : Très lent
+        // Niveau + : De plus en plus vite
+        let speed = 0.03 + (STATE.level * 0.005);
         STATE.stress += speed;
+        
+        // UI Updates
+        let bar = document.getElementById('stress-bar');
+        bar.style.width = Math.min(100, STATE.stress) + "%";
+        
+        // Couleur bar : vire au rouge vif
+        if (STATE.stress > 80) bar.style.backgroundColor = "#f00";
+        else bar.style.backgroundColor = "var(--blood)";
 
-        // Mise à jour visuelle et audio
-        document.getElementById('stress-bar').style.width = Math.min(100, STATE.stress) + "%";
+        // Audio dynamic
         AudioEngine.updateStress(STATE.stress);
 
-        // Vignette rouge
-        let vign = document.getElementById('vignette');
-        vign.style.boxShadow = `inset 0 0 ${STATE.stress * 2}px var(--blood)`;
+        // Vignette
+        document.getElementById('vignette').style.boxShadow = `inset 0 0 ${STATE.stress*1.5}px var(--blood)`;
 
-        // Dialogues aléatoires (idle)
-        if (Math.random() < 0.005) {
-            let list = STATE.stress > 80 ? SPEECH.lines.panic : SPEECH.lines.idle;
-            SPEECH.speak(list[Math.floor(Math.random() * list.length)]);
-        }
+        // Check Idle
+        DEMON.checkIdle();
 
-        if (STATE.stress >= 100) {
-            gameOver();
+        // Death
+        if(STATE.stress >= 100) {
+            die();
         } else {
-            requestAnimationFrame(gameLoop);
+            requestAnimationFrame(loop);
         }
     }
 
-    function gameOver() {
+    function die() {
         STATE.active = false;
-        AudioEngine.playError(); // Long bruit
-        SPEECH.speak("Ton temps est écoulé. Adieu.", true);
-        document.body.innerHTML = `
-            <div style="text-align:center; color:red;">
-                <h1>TU ES MORT</h1>
-                <p>Niveau atteint : ${STATE.level}</p>
-                <button onclick="location.reload()" style="background:#300; color:#fff; border:none; padding:10px 20px; margin-top:20px;">RESSUSCITER</button>
-            </div>
-        `;
-        document.body.style.background = "#200";
+        AudioEngine.sfxError();
+        DEMON.say("C'est fini pour toi, {name}.", true);
+        
+        document.getElementById('game-over').style.display = 'flex';
+        document.getElementById('death-msg').innerText = `Tu as succombé au niveau ${STATE.level}.`;
     }
-
-    function winGame() {
-        STATE.active = false;
-        document.body.innerHTML = `
-            <div style="text-align:center; color:#fff;">
-                <h1>LIBRE...</h1>
-                <p>Tu as vaincu le démon.</p>
-            </div>
-        `;
-    }
-
-    // Lancement intro
-    window.onload = introSequence;
 
 </script>
 </body>
