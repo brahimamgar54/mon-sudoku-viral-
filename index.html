@@ -3,987 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SUDOKU OR DIE - MOBILE</title>
+    <title>SUDOKU OR DIE - VOID EDITION</title>
     <style>
-        :root { --blood: #ff0000; --glow: #ff3333; }
-        
-        /* RESET MOBILE */
-        * {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
+        :root { --blood: #660000; --active-blood: #ff0000; }
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         
         body { 
-            background: #000; 
-            color: #eee; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            margin: 0; 
-            padding: 0;
-            overflow: hidden;
-            width: 100vw;
-            height: 100vh;
-            touch-action: manipulation;
-            background: radial-gradient(circle at center, #000 0%, #1a0000 100%);
+            background: #000; color: #888; 
+            font-family: 'Courier New', monospace;
+            margin: 0; overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
         }
-        
-        /* CONTAINER PRINCIPAL - POUR MOBILE */
-        #game-container {
-            display: none;
-            flex-direction: column;
-            height: 100vh;
-            width: 100vw;
-            padding: 10px;
-            box-sizing: border-box;
-            position: relative;
+
+        /* AMBIANCE VISUELLE */
+        #noise-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('https://media.giphy.com/media/oEI9uWUPr9WUM/giphy.gif');
+            opacity: 0.03; pointer-events: none; z-index: 10;
         }
-        
-        /* HEADER AVEC NOM */
-        .player-header {
-            text-align: center;
-            padding: 15px 0;
-            background: linear-gradient(to bottom, #111, #000);
-            border-bottom: 2px solid var(--blood);
-            margin-bottom: 10px;
-            box-shadow: 0 0 20px rgba(255,0,0,0.3);
+
+        /* HEADER & DIALOGUES */
+        #dialogue-container {
+            width: 100%; height: 120px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; text-align: center;
+            border-bottom: 1px solid #1a0000;
         }
-        
-        #display-name {
-            color: #ff9900;
-            font-size: 1.8rem;
-            text-shadow: 0 0 10px rgba(255,153,0,0.5);
-            margin: 0;
-            letter-spacing: 2px;
+        #monster-text {
+            color: var(--active-blood);
+            font-size: 1.1rem; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 1px;
+            text-shadow: 0 0 8px var(--blood);
         }
-        
-        /* ZONE DU DÉMON - EN HAUT */
-        .demon-zone {
-            height: 35vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        
-        .demon-container {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin-bottom: 15px;
-        }
-        
-        /* ANIMATION DU DÉMON */
-        #demon-face {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 0 20px rgba(255,0,0,0.7));
-            animation: float 4s ease-in-out infinite;
-            transition: transform 0.3s;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            33% { transform: translateY(-10px) rotate(-1deg); }
-            66% { transform: translateY(5px) rotate(1deg); }
-        }
-        
-        /* EXPRESSIONS DU DÉMON */
-        .demon-angry {
-            filter: hue-rotate(-30deg) brightness(1.5) !important;
-            animation: shake 0.5s infinite !important;
-        }
-        
-        .demon-laugh {
-            filter: hue-rotate(60deg) brightness(1.3) !important;
-            animation: bounce 0.3s infinite !important;
-        }
-        
-        .demon-focus {
-            filter: contrast(1.5) brightness(1.2) !important;
-            transform: scale(1.1) !important;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        /* DIALOGUE DU DÉMON */
-        #monster-dialogue {
-            background: rgba(0,0,0,0.8);
-            border: 2px solid #600;
-            border-radius: 15px;
-            padding: 15px;
-            margin: 10px 20px;
-            text-align: center;
-            color: #ff3333;
-            font-weight: bold;
-            font-size: 1.1rem;
-            text-shadow: 0 0 5px rgba(255,0,0,0.5);
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 20px rgba(255,0,0,0.3);
-        }
-        
+
         /* BARRE DE MENACE */
-        .threat-container {
-            width: 90%;
-            height: 20px;
-            background: #111;
-            border: 2px solid #300;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px auto;
+        .threat-wrap { width: 90%; height: 4px; background: #111; margin: 10px 0; border-radius: 2px; }
+        #threat-fill { width: 0%; height: 100%; background: var(--blood); transition: width 0.5s linear; }
+
+        /* GRILLE SUDOKU */
+        #grid {
+            display: grid; grid-template-columns: repeat(9, 1fr);
+            width: 92vw; height: 92vw; max-width: 380px; max-height: 380px;
+            background: #111; border: 2px solid #222;
         }
-        
-        #threat-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #330000, #ff0000);
-            transition: width 0.5s;
+        .cell {
+            background: #000; border: 0.5px solid #111;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; font-weight: bold; color: #fff;
         }
-        
-        /* GRILLE DE SUDOKU - OPTIMISÉE TOUCH */
-        .game-zone {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
+        .cell.fixed { color: #444; background: #050505; }
+        .cell.selected { background: #1a0000; box-shadow: inset 0 0 15px #ff000044; }
+        .cell.err { color: var(--active-blood); animation: shake 0.2s; }
+
+        /* CLAVIER */
+        #numpad {
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            gap: 10px; width: 90%; margin-top: 20px;
         }
-        
-        #player-board {
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            gap: 1px;
-            background: #222;
-            border: 2px solid #300;
-            width: 95vw;
-            max-width: 400px;
-            height: 95vw;
-            max-height: 400px;
-            touch-action: manipulation;
-        }
-        
-        .tile {
-            background: #111;
-            color: #ffcc00;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.3rem;
-            font-weight: bold;
-            border: 0.5px solid #333;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
-        
-        .tile.selected {
-            background: #330000;
-            border-color: #ff3300;
-            box-shadow: inset 0 0 10px rgba(255,0,0,0.5);
-        }
-        
-        .tile.prefilled {
-            background: #0a0a0a;
-            color: #666;
-            pointer-events: none;
-        }
-        
-        .tile.error {
-            background: #330000 !important;
-            animation: error-flash 0.5s;
-        }
-        
-        @keyframes error-flash {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        /* CLAVIER NUMÉRIQUE - GROS BOUTONS POUR DOIGTS */
-        .numpad-container {
-            margin-top: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }
-        
-        .numpad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            width: 90%;
-            max-width: 300px;
-        }
-        
-        .num-btn {
-            background: #111;
-            color: #ff9900;
-            border: 2px solid #330000;
-            border-radius: 10px;
-            padding: 20px 0;
-            font-size: 1.8rem;
-            font-weight: bold;
-            touch-action: manipulation;
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .num-btn:active {
-            background: #ff3300;
-            transform: scale(0.95);
-        }
-        
-        .btn-clear {
-            grid-column: span 2;
-            background: #330000;
-            color: #ff6666;
-            font-size: 1.4rem;
-        }
-        
-        /* ÉCRAN DE DÉMARRAGE */
-        #screen-start {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: radial-gradient(circle at center, #000 0%, #200000 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        
-        .title {
-            font-size: 3rem;
-            background: linear-gradient(45deg, #ff0000, #ff9900);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+        .key {
+            background: #0a0a0a; border: 1px solid #222; color: #666;
+            padding: 15px 0; border-radius: 5px; font-size: 1.2rem;
             text-align: center;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px rgba(255,0,0,0.5);
         }
-        
-        #name-input {
-            background: #111;
-            border: 2px solid #600;
-            color: #ff9900;
-            padding: 15px;
-            font-size: 1.5rem;
-            width: 80%;
-            max-width: 300px;
-            text-align: center;
-            border-radius: 10px;
-            margin: 30px 0;
+        .key:active { background: var(--blood); color: #fff; }
+
+        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-4px);} 75% {transform: translateX(4px);} }
+
+        /* ECRAN START */
+        #start-screen {
+            position: fixed; inset: 0; background: #000; z-index: 100;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        
-        .btn-start {
-            background: linear-gradient(45deg, #600, #a00);
-            color: white;
-            border: none;
-            padding: 20px 40px;
-            font-size: 1.5rem;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 20px;
-            box-shadow: 0 0 30px rgba(255,0,0,0.5);
-        }
-        
-        /* INDICATEUR DE NIVEAU */
-        .level-indicator {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.8);
-            border: 2px solid #600;
-            border-radius: 10px;
-            padding: 5px 15px;
-            color: #ff9900;
-            font-weight: bold;
-        }
-        
-        /* ANIMATION DE VICTOIRE */
-        @keyframes victory {
-            0% { background: #111; }
-            50% { background: #003300; }
-            100% { background: #111; }
-        }
-        
-        /* MODAL GAME OVER */
-        .game-over-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.9);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
+        #start-btn {
+            background: none; border: 1px solid var(--blood); color: var(--blood);
+            padding: 15px 40px; font-size: 1.2rem; cursor: pointer;
+            letter-spacing: 5px;
         }
     </style>
 </head>
 <body>
 
-    <!-- ÉCRAN D'ACCUEIL -->
-    <div id="screen-start">
-        <h1 class="title">SUDOKU<br>OR DIE</h1>
-        <p style="color:#ff3333; font-size: 1.2rem; text-align: center;">
-            Le démon attend ta prochaine erreur
-        </p>
-        <input type="text" id="name-input" placeholder="TON NOM..." maxlength="12" autocomplete="off">
-        <button class="btn-start" onclick="startGame()">COMMENCER</button>
-        <p style="color:#666; margin-top: 30px; font-size: 0.9rem;">
-            Remplis la grille avant que sa faim ne te consume
-        </p>
+    <div id="noise-overlay"></div>
+
+    <div id="start-screen">
+        <h1 style="color:var(--blood); letter-spacing:10px;">VOID</h1>
+        <input type="text" id="user-name" placeholder="NOM DE L'ÂME" 
+               style="background:none; border:none; border-bottom:1px solid #333; color:#fff; text-align:center; margin:20px; outline:none;">
+        <button id="start-btn" onclick="initGame()">ENTRER DANS L'OBSCURITÉ</button>
     </div>
 
-    <!-- JEU PRINCIPAL -->
-    <div id="game-container">
-        <div class="level-indicator">NIVEAU <span id="level-display">1</span></div>
-        
-        <div class="player-header">
-            <h2 id="display-name">JOUEUR</h2>
-        </div>
-        
-        <!-- ZONE DU DÉMON -->
-        <div class="demon-zone">
-            <div class="demon-container">
-                <img src="https://i.ibb.co/8cYyL5T/demon.png" id="demon-face" alt="Démon">
-            </div>
-            
-            <div id="monster-dialogue">
-                Je sens ta présence... commence à jouer.
-            </div>
-            
-            <div style="color:#ff3333; font-size: 0.9rem; margin: 5px 0;">
-                SA FAIM AUGMENTE
-            </div>
-            <div class="threat-container">
-                <div id="threat-bar"></div>
-            </div>
-        </div>
-        
-        <!-- ZONE DE JEU -->
-        <div class="game-zone">
-            <div id="player-board"></div>
-            
-            <div class="numpad-container">
-                <div class="numpad" id="numpad">
-                    <!-- Les boutons seront générés par JavaScript -->
-                </div>
-            </div>
-        </div>
+    <div id="dialogue-container">
+        <div id="monster-text">... ÉCOUTE MA RESPIRATION ...</div>
     </div>
 
-    <!-- MODAL GAME OVER -->
-    <div class="game-over-modal" id="game-over">
-        <h1 style="color:#ff0000; font-size: 3rem; text-align: center;">ÂME PRISE</h1>
-        <p style="color:#ff6666; font-size: 1.5rem; text-align: center;">
-            Le démon t'a dévoré
-        </p>
-        <p style="color:#aa0000; margin: 20px 0;">
-            Niveau atteint: <span id="final-level">1</span>
-        </p>
-        <button onclick="restartGame()" style="
-            background: #600;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            border-radius: 10px;
-            margin-top: 20px;
-        ">REESSAYER</button>
-    </div>
+    <div class="threat-wrap"><div id="threat-fill"></div></div>
 
-    <!-- AUDIOS -->
-    <audio id="bg-sound" loop></audio>
-    <audio id="click-sound"></audio>
-    <audio id="error-sound"></audio>
-    <audio id="threat-sound"></audio>
-    <audio id="demon-laugh"></audio>
-    <audio id="heartbeat"></audio>
+    <div id="grid"></div>
+
+    <div id="numpad">
+        <div class="key" onclick="press(1)">1</div>
+        <div class="key" onclick="press(2)">2</div>
+        <div class="key" onclick="press(3)">3</div>
+        <div class="key" onclick="press(4)">4</div>
+        <div class="key" onclick="press(5)">5</div>
+        <div class="key" onclick="press(6)">6</div>
+        <div class="key" onclick="press(7)">7</div>
+        <div class="key" onclick="press(8)">8</div>
+        <div class="key" onclick="press(9)">9</div>
+        <div class="key" style="background:#1a0000" onclick="press(0)">X</div>
+    </div>
 
     <script>
-        // VARIABLES GLOBALES
-        let level = 1;
-        let playerName = "Joueur";
-        let selectedTile = null;
-        let solution = [];
+        let selected = null;
         let threat = 0;
-        let gameActive = false;
-        let demonSpeaking = false;
-        let lastDemonSpeech = 0;
-        let demonSpeechCooldown = 5000; // 5 secondes entre chaque phrase
+        let playerName = "Mortel";
+        let solution = "534678912672195348198342567859761423426853791713924856961537284287419635345286179".split('');
         
-        // PHRASES DU DÉMON - INTERACTIVES
-        const demonReactions = {
-            start: [
-                `${playerName}... enfin tu oses m'affronter.`,
-                `Je vais savourer chaque seconde de ta lente agonie.`,
-                `Remplis les cases... avant que je ne remplisse mon estomac.`
-            ],
-            
-            correct: [
-                `Correct... pour l'instant.`,
-                `Tu avances, mais je te rattrape.`,
-                `Une case de moins pour toi... une de plus pour ma faim.`
-            ],
-            
-            error: [
-                `Hahaha ! Erreur !`,
-                `Ta stupidité me nourrit !`,
-                `Encore une faute ! Ta fin approche !`,
-                `Tu te noies dans ton ignorance !`
-            ],
-            
-            threatHigh: [
-                `MA FAIM GRANDIT !`,
-                `JE ME RAPPROCHE DE TOI !`,
-                `TON TEMPS S'ÉCOULE !`,
-                `PRÉPARE-TOI À MOURIR !`
-            ],
-            
-            levelUp: [
-                `Tu as survécu... pour l'instant.`,
-                `Le niveau suivant sera ta tombe.`,
-                `Ma patience s'épuise...`
-            ],
-            
-            idle: [
-                `Je te regarde...`,
-                `Chaque seconde compte...`,
-                `Ton destin est entre mes mains...`,
-                `Je sens ta peur...`
-            ]
-        };
+        // --- 100 DIALOGUES ---
+        const dialogues = [
+            "Je sens ton souffle sur l'écran, [NOM].", "Chaque seconde ici est une année dans mon monde.", 
+            "Pourquoi tes doigts tremblent-ils ?", "Le Sudoku n'est qu'un prétexte pour te garder ici.",
+            "J'aime quand tu réfléchis... ton cerveau devient si chaud.", "Regarde derrière toi. Non, je rigole.",
+            "Tu penses que tu vas sortir d'ici ?", "[NOM], ton rythme cardiaque s'accélère.",
+            "Fais une erreur. Juste une. Pour moi.", "Le vide te regarde aussi.",
+            "Tes yeux fatiguent, n'est-ce pas ?", "Je suis dans les pixels.", "Bientôt, tu ne feras qu'un avec la grille.",
+            "Est-ce que quelqu'un sait que tu joues à ça ?", "J'entends ta respiration.", "Concentrate-toi... ou meurt.",
+            "Chaque chiffre posé est un pas vers ta fin.", "Tu es si lent, [NOM].", "Ma faim est insatiable.",
+            "N'oublie pas de respirer. Moi, je n'en ai pas besoin.", "Tes erreurs ont un goût de fer.",
+            "Le noir autour de la grille... c'est moi.", "Tu es au niveau 1, et tu as déjà peur ?",
+            "Ne ferme pas les yeux.", "Ta solitude est délicieuse.", "Je ne suis pas seul dans cette pièce.",
+            "L'obscurité te va si bien.", "[NOM]... [NOM]... [NOM]...", "Encore un chiffre, petit insecte.",
+            "Tu joues ta vie sur un 9 ?", "Ma patience a des limites.", "Touche encore cette case... pour voir.",
+            "Ton âme est plus complexe que cette grille.", "Le silence est lourd, n'est-ce pas ?",
+            "Je te vois à travers la caméra. Mentir est inutile.", "Même si tu gagnes, je reste là.",
+            "Tic. Tac. Tic. Tac.", "Ton sang circule si vite.", "Je n'ai pas de visage, mais je te souris.",
+            "Veux-tu que je t'aide ? Non.", "Cette case est fausse. Ou peut-être pas.",
+            "Tu as oublié de fermer la porte.", "Il y a quelque chose sous ton lit maintenant.",
+            "Regarde tes mains. Elles appartiennent au vide.", "Ne me fais pas attendre, [NOM].",
+            "Ton nom sera gravé sur cette cellule.", "Tu es prisonnier des chiffres.",
+            "Même la lumière ne peut t'aider ici.", "Je suis ton ombre.", "L'enfer est un Sudoku sans fin.",
+            "Arrête de cligner des yeux.", "Tu es si fragile.", "Je peux sentir ta peur monter.",
+            "Un mauvais mouvement et tout s'arrête.", "Est-ce que tu m'entends vraiment ?",
+            "Je suis le murmure dans tes oreilles.", "Pourquoi tu ne pars pas ?", "Parce que tu ne peux pas.",
+            "Tu es à moi.", "Le vide appelle le vide.", "Tes pensées sont si bruyantes.",
+            "Le 5 ? Vraiment ?", "Ta logique est pitoyable.", "Même un enfant ferait mieux.",
+            "Je vais te briser.", "Pas de sortie. Pas d'issue.", "Abandonne.", "Laisse-moi entrer.",
+            "Ton écran est une prison.", "Je caresse ton esprit.", "Tu as froid ?", "La température baisse, n'est-ce pas ?",
+            "Tu es le prochain.", "Rien ne peut te sauver.", "Pas même la victoire.", "Je suis déjà derrière toi.",
+            "Ton nom résonne dans l'abysse.", "Tu n'es qu'une suite de chiffres.", "La grille se nourrit de toi.",
+            "Ton agonie est ma musique.", "Chante pour moi, [NOM].", "Pose ce 7. Je t'attends.",
+            "La fin est proche.", "Le 0 n'existe pas ici.", "Comme ton avenir.", "Je ris de ta confusion.",
+            "Tu es perdu ?", "Laisse-toi aller.", "Le noir est si paisible.", "Ne lutte plus.",
+            "L'oxygène devient rare.", "Ton temps est écoulé.", "Je te tiens.", "À jamais.",
+            "Dernière chance.", "Adieu, [NOM].", "Nous y sommes enfin.", "Bienvenue chez moi."
+        ];
 
-        // INITIALISATION
+        // --- AUDIO ---
+        const breathAudio = new Audio('https://www.soundjay.com/human/sounds/human-breath-1.mp3'); // Simulation
+        breathAudio.loop = true;
+
         function initGame() {
-            // Configuration pour mobile
-            document.documentElement.style.height = '100%';
-            document.body.style.height = '100%';
+            playerName = document.getElementById('user-name').value || "Mortel";
+            document.getElementById('start-screen').style.display = 'none';
+            breathAudio.play();
             
-            // Précharger les sons optimisés pour mobile
-            loadSounds();
-            
-            // Créer la grille
-            createBoard();
-            
-            // Créer le clavier
-            createNumpad();
-            
-            // Initialiser la synthèse vocale
-            initVoice();
-            
-            // Désactiver le zoom sur mobile
-            disableZoom();
-        }
-
-        function loadSounds() {
-            // Sons d'ambiance - fichiers courts optimisés
-            const sounds = {
-                'bg-sound': 'https://assets.mixkit.co/sfx/preview/mixkit-horror-atmosphere-429.mp3',
-                'click-sound': 'https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3',
-                'error-sound': 'https://assets.mixkit.co/sfx/preview/mixkit-wrong-long-buzzer-953.mp3',
-                'threat-sound': 'https://assets.mixkit.co/sfx/preview/mixkit-creepy-alarm-1001.mp3',
-                'demon-laugh': 'https://assets.mixkit.co/sfx/preview/mixkit-evil-laugh-24.mp3',
-                'heartbeat': 'https://assets.mixkit.co/sfx/preview/mixkit-heartbeat-fast-917.mp3'
-            };
-            
-            Object.keys(sounds).forEach(id => {
-                const audio = document.getElementById(id);
-                audio.src = sounds[id];
-                audio.load();
-                audio.volume = id === 'bg-sound' ? 0.2 : 0.6;
-                audio.preload = 'auto';
-            });
-        }
-
-        function initVoice() {
-            // Initialiser la synthèse vocale avec paramètres mobiles
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.onvoiceschanged = function() {
-                    // Voice prête
-                };
-            }
-        }
-
-        function disableZoom() {
-            // Empêcher le zoom sur mobile
-            document.addEventListener('gesturestart', function(e) {
-                e.preventDefault();
-            });
-        }
-
-        function startGame() {
-            const nameInput = document.getElementById('name-input').value.trim();
-            if (nameInput) {
-                playerName = nameInput;
-            }
-            
-            // Mettre à jour le nom
-            document.getElementById('display-name').textContent = playerName.toUpperCase();
-            
-            // Cacher l'écran de démarrage
-            document.getElementById('screen-start').style.display = 'none';
-            document.getElementById('game-container').style.display = 'flex';
-            
-            // Démarrer l'ambiance sonore
-            document.getElementById('bg-sound').play();
-            document.getElementById('heartbeat').play();
-            
-            // Initialiser le jeu
-            gameActive = true;
-            loadLevel();
-            
-            // Premier message du démon
-            setTimeout(() => {
-                demonSpeak('start');
-            }, 1000);
-            
-            // Démarrer le timer de menace
-            startThreatTimer();
-            
-            // Démarrer les réactions aléatoires
-            startRandomReactions();
-        }
-
-        function createBoard() {
-            const board = document.getElementById('player-board');
-            board.innerHTML = '';
-            
-            for (let i = 0; i < 81; i++) {
-                const tile = document.createElement('div');
-                tile.className = 'tile';
-                tile.dataset.index = i;
-                
-                // Événements tactiles pour mobile
-                tile.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    selectTile(tile);
-                });
-                
-                tile.addEventListener('click', () => {
-                    selectTile(tile);
-                });
-                
-                board.appendChild(tile);
-            }
-        }
-
-        function createNumpad() {
-            const numpad = document.getElementById('numpad');
-            numpad.innerHTML = '';
-            
-            // Boutons 1-9
-            for (let i = 1; i <= 9; i++) {
-                const btn = document.createElement('button');
-                btn.className = 'num-btn';
-                btn.textContent = i;
-                btn.dataset.value = i;
-                
-                btn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    inputNumber(i);
-                    animateButton(btn);
-                });
-                
-                btn.addEventListener('click', () => {
-                    inputNumber(i);
-                    animateButton(btn);
-                });
-                
-                numpad.appendChild(btn);
-            }
-            
-            // Bouton Effacer
-            const clearBtn = document.createElement('button');
-            clearBtn.className = 'num-btn btn-clear';
-            clearBtn.textContent = 'EFFACER';
-            clearBtn.style.gridColumn = 'span 2';
-            
-            clearBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                clearTile();
-                animateButton(clearBtn);
-            });
-            
-            clearBtn.addEventListener('click', () => {
-                clearTile();
-                animateButton(clearBtn);
-            });
-            
-            numpad.appendChild(clearBtn);
-            
-            // Bouton Valider
-            const validateBtn = document.createElement('button');
-            validateBtn.className = 'num-btn';
-            validateBtn.textContent = '✓';
-            validateBtn.style.background = '#003300';
-            validateBtn.style.color = '#00ff00';
-            
-            validateBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                checkWin();
-                animateButton(validateBtn);
-            });
-            
-            validateBtn.addEventListener('click', () => {
-                checkWin();
-                animateButton(validateBtn);
-            });
-            
-            numpad.appendChild(validateBtn);
-        }
-
-        function animateButton(btn) {
-            btn.style.transform = 'scale(0.9)';
-            setTimeout(() => {
-                btn.style.transform = 'scale(1)';
-            }, 100);
-        }
-
-        function selectTile(tile) {
-            if (!gameActive || tile.classList.contains('prefilled')) return;
-            
-            if (selectedTile) {
-                selectedTile.classList.remove('selected');
-            }
-            
-            selectedTile = tile;
-            tile.classList.add('selected');
-            
-            // Son de sélection
-            playSound('click-sound');
-        }
-
-        function inputNumber(num) {
-            if (!selectedTile || !gameActive) return;
-            
-            const index = parseInt(selectedTile.dataset.index);
-            const isCorrect = num.toString() === solution[index];
-            
-            // Effet sonore d'écriture (bic)
-            playSound('click-sound');
-            
-            if (isCorrect) {
-                // CORRECT
-                selectedTile.textContent = num;
-                selectedTile.style.color = '#00ff00';
-                
-                // Réaction positive du démon (rare)
-                if (Math.random() < 0.2) {
-                    demonSpeak('correct');
+            const grid = document.getElementById('grid');
+            for(let i=0; i<81; i++) {
+                let cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = 'c' + i;
+                if(Math.random() > 0.4) {
+                    cell.innerText = solution[i];
+                    cell.classList.add('fixed');
                 }
-                
-                // Animation du démon
-                setDemonExpression('focus');
-                setTimeout(() => setDemonExpression('normal'), 1000);
-                
-            } else {
-                // ERREUR
-                selectedTile.classList.add('error');
-                selectedTile.textContent = num;
-                selectedTile.style.color = '#ff0000';
-                
-                // Augmenter la menace
-                threat += 15;
-                updateThreatBar();
-                
-                // Réaction du démon
-                demonSpeak('error');
-                setDemonExpression('laugh');
-                
-                // Son d'erreur
-                playSound('error-sound');
-                
-                setTimeout(() => {
-                    if (selectedTile) {
-                        selectedTile.classList.remove('error');
+                cell.onclick = () => {
+                    if(!cell.classList.contains('fixed')) {
+                        if(selected) selected.classList.remove('selected');
+                        selected = cell;
+                        selected.classList.add('selected');
                     }
-                }, 500);
-            }
-        }
-
-        function clearTile() {
-            if (!selectedTile || !gameActive) return;
-            
-            selectedTile.textContent = '';
-            playSound('click-sound');
-        }
-
-        function loadLevel() {
-            threat = 0;
-            updateThreatBar();
-            
-            // Solution de sudoku valide
-            const base = [
-                "534678912", "672195348", "198342567",
-                "859761423", "426853791", "713924856",
-                "961537284", "287419635", "345286179"
-            ];
-            
-            solution = base.join('').split('');
-            
-            // Niveau 1: très facile (3 cases vides)
-            // Niveau augmente: plus de cases vides
-            const emptyCells = Math.min(level + 2, 60);
-            
-            // Créer un tableau d'indices vides
-            const emptyIndices = [];
-            while (emptyIndices.length < emptyCells) {
-                const randomIndex = Math.floor(Math.random() * 81);
-                if (!emptyIndices.includes(randomIndex)) {
-                    emptyIndices.push(randomIndex);
-                }
-            }
-            
-            // Remplir la grille
-            for (let i = 0; i < 81; i++) {
-                const tile = document.querySelector(`.tile[data-index="${i}"]`);
-                tile.textContent = '';
-                tile.classList.remove('prefilled');
-                tile.style.color = '#ffcc00';
-                
-                if (!emptyIndices.includes(i)) {
-                    tile.textContent = solution[i];
-                    tile.classList.add('prefilled');
-                    tile.style.color = '#666';
-                }
-            }
-            
-            // Mettre à jour l'affichage du niveau
-            document.getElementById('level-display').textContent = level;
-        }
-
-        function startThreatTimer() {
-            setInterval(() => {
-                if (!gameActive) return;
-                
-                // Augmenter la menace avec le temps
-                threat += 0.2 + (level * 0.05);
-                updateThreatBar();
-                
-                // Réactions spéciales quand menace haute
-                if (threat > 70 && Math.random() < 0.1) {
-                    demonSpeak('threatHigh');
-                    playSound('threat-sound');
-                    setDemonExpression('angry');
-                    
-                    // Clignotement rouge
-                    document.body.style.backgroundColor = '#300';
-                    setTimeout(() => {
-                        document.body.style.backgroundColor = '';
-                    }, 300);
-                }
-                
-                // Game Over
-                if (threat >= 100) {
-                    gameOver();
-                }
-                
-            }, 1000);
-        }
-
-        function startRandomReactions() {
-            setInterval(() => {
-                if (!gameActive || demonSpeaking) return;
-                
-                // Réaction aléatoire du démon
-                if (Math.random() < 0.02) { // 2% de chance chaque seconde
-                    demonSpeak('idle');
-                }
-                
-            }, 1000);
-        }
-
-        function updateThreatBar() {
-            const bar = document.getElementById('threat-bar');
-            bar.style.width = Math.min(threat, 100) + '%';
-            
-            // Changer la couleur selon le niveau de menace
-            if (threat > 70) {
-                bar.style.background = 'linear-gradient(90deg, #660000, #ff0000)';
-            } else if (threat > 40) {
-                bar.style.background = 'linear-gradient(90deg, #330000, #ff3333)';
-            }
-        }
-
-        function demonSpeak(type) {
-            // Vérifier le cooldown
-            const now = Date.now();
-            if (now - lastDemonSpeech < demonSpeechCooldown) return;
-            
-            const lines = demonReactions[type];
-            if (!lines || lines.length === 0) return;
-            
-            const line = lines[Math.floor(Math.random() * lines.length)]
-                .replace('[NOM]', playerName)
-                .replace('[LVL]', level);
-            
-            // Afficher le texte
-            document.getElementById('monster-dialogue').textContent = line;
-            
-            // Parler avec synthèse vocale
-            if ('speechSynthesis' in window) {
-                demonSpeaking = true;
-                window.speechSynthesis.cancel();
-                
-                const msg = new SpeechSynthesisUtterance(line);
-                msg.lang = 'fr-FR';
-                msg.rate = 0.75; // Plus lent
-                msg.pitch = 0.3; // Très grave
-                msg.volume = 1;
-                
-                msg.onend = function() {
-                    demonSpeaking = false;
-                    lastDemonSpeech = Date.now();
                 };
-                
-                window.speechSynthesis.speak(msg);
-            } else {
-                lastDemonSpeech = Date.now();
+                grid.appendChild(cell);
+            }
+            
+            setInterval(gameLoop, 1000);
+        }
+
+        function gameLoop() {
+            threat += 0.4;
+            document.getElementById('threat-fill').style.width = threat + '%';
+            
+            // Accélération de la respiration
+            breathAudio.playbackRate = 1 + (threat / 50);
+
+            // Dialogue aléatoire
+            if(Math.random() > 0.85) {
+                let line = dialogues[Math.floor(Math.random()*dialogues.length)];
+                let text = line.replace('[NOM]', playerName);
+                document.getElementById('monster-text').innerText = text;
+                speak(text);
+            }
+
+            if(threat >= 100) {
+                document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:45vh;'>ÂME CONSUMÉE</h1>";
+                speak("Ton temps est fini. Je te prends.");
+                setTimeout(() => location.reload(), 3000);
             }
         }
 
-        function setDemonExpression(expression) {
-            const demonFace = document.getElementById('demon-face');
-            
-            // Retirer toutes les classes d'expression
-            demonFace.classList.remove('demon-angry', 'demon-laugh', 'demon-focus');
-            
-            // Ajouter la nouvelle expression
-            if (expression !== 'normal') {
-                demonFace.classList.add(`demon-${expression}`);
+        function press(n) {
+            if(!selected) return;
+            let idx = selected.id.substring(1);
+            if(n === 0) {
+                selected.innerText = "";
+            } else {
+                selected.innerText = n;
+                if(n != solution[idx]) {
+                    selected.classList.add('err');
+                    threat += 5;
+                    speak("Erreur fatale.");
+                    setTimeout(() => selected.classList.remove('err'), 300);
+                } else {
+                    selected.style.color = "#00ff00";
+                    checkWin();
+                }
             }
+        }
+
+        function speak(t) {
+            window.speechSynthesis.cancel();
+            let m = new SpeechSynthesisUtterance(t);
+            m.lang = 'fr-FR'; m.pitch = 0.1; m.rate = 0.7;
+            window.speechSynthesis.speak(m);
         }
 
         function checkWin() {
-            if (!gameActive) return;
-            
             let win = true;
-            for (let i = 0; i < 81; i++) {
-                const tile = document.querySelector(`.tile[data-index="${i}"]`);
-                if (tile.textContent !== solution[i]) {
-                    win = false;
-                    if (tile.textContent && !tile.classList.contains('prefilled')) {
-                        tile.style.color = '#ff0000';
-                    }
-                }
+            for(let i=0; i<81; i++) {
+                if(document.getElementById('c'+i).innerText != solution[i]) win = false;
             }
-            
-            if (win) {
-                // VICTOIRE
-                gameActive = false;
-                level++;
-                
-                // Animation de victoire
-                document.querySelectorAll('.tile').forEach(tile => {
-                    tile.style.animation = 'victory 0.5s 3';
-                });
-                
-                // Message du démon
-                demonSpeak('levelUp');
-                
-                // Redémarrer après 3 secondes
-                setTimeout(() => {
-                    gameActive = true;
-                    loadLevel();
-                }, 3000);
-                
-            } else {
-                // Pas encore gagné
-                playSound('error-sound');
-                demonSpeak('error');
+            if(win) {
+                document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:45vh;'>ÉCHAPPÉ... POUR L'INSTANT</h1>";
             }
         }
-
-        function gameOver() {
-            gameActive = false;
-            
-            // Arrêter tous les sons
-            document.querySelectorAll('audio').forEach(audio => {
-                audio.pause();
-                audio.currentTime = 0;
-            });
-            
-            // Afficher l'écran de game over
-            document.getElementById('final-level').textContent = level;
-            document.getElementById('game-over').style.display = 'flex';
-            
-            // Dernier message vocal
-            setTimeout(() => {
-                if ('speechSynthesis' in window) {
-                    const msg = new SpeechSynthesisUtterance(`${playerName}... Ton âme est à moi.`);
-                    msg.rate = 0.7;
-                    msg.pitch = 0.2;
-                    window.speechSynthesis.speak(msg);
-                }
-            }, 500);
-        }
-
-        function restartGame() {
-            level = 1;
-            threat = 0;
-            
-            // Cacher le game over
-            document.getElementById('game-over').style.display = 'none';
-            
-            // Redémarrer le jeu
-            gameActive = true;
-            loadLevel();
-            
-            // Redémarrer les sons
-            document.getElementById('bg-sound').play();
-            document.getElementById('heartbeat').play();
-            
-            // Message de redémarrage
-            setTimeout(() => {
-                demonSpeak('start');
-            }, 1000);
-        }
-
-        function playSound(soundId) {
-            const audio = document.getElementById(soundId);
-            if (audio) {
-                audio.currentTime = 0;
-                audio.play().catch(e => console.log("Son non joué:", e));
-            }
-        }
-
-        // INITIALISATION AU CHARGEMENT
-        window.addEventListener('load', initGame);
-        
-        // Empêcher le défilement sur mobile
-        document.addEventListener('touchmove', function(e) {
-            if (e.target.classList.contains('tile') || 
-                e.target.classList.contains('num-btn') ||
-                e.target.id === 'player-board') {
-                e.preventDefault();
-            }
-        }, { passive: false });
     </script>
 </body>
-    </html>
+</html>
