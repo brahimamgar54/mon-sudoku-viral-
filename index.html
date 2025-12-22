@@ -5,181 +5,212 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SUDOKU OR DIE</title>
     <style>
-        :root { --blood: #600; --bright: #f00; }
+        :root { --red: #ff0000; --dark-red: #400; }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; touch-action: none; }
-        body { background: #000; color: #444; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; align-items: center; }
-
-        /* EFFET VISUEL ANALOGIQUE */
-        .vhs-effect { position: fixed; inset: 0; background: url('https://media.giphy.com/media/oEI9uWUPr9WUM/giphy.gif'); opacity: 0.05; pointer-events: none; z-index: 99; }
+        body { background: #000; color: #555; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; align-items: center; }
         
-        #dialogue-zone { width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; padding: 15px; text-align: center; border-bottom: 1px solid #111; z-index: 10; }
-        #text-content { color: var(--bright); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px #000; }
+        /* EFFETS */
+        .vhs { position: fixed; inset: 0; background: url('https://media.giphy.com/media/oEI9uWUPr9WUM/giphy.gif'); opacity: 0.04; pointer-events: none; z-index: 99; }
+        #diag-box { width: 100%; height: 130px; display: flex; align-items: center; justify-content: center; padding: 15px; text-align: center; border-bottom: 2px solid #111; position: relative; }
+        #text { color: var(--red); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px #000; }
 
         /* JEU */
-        .timer-bg { width: 100%; height: 4px; background: #050505; }
-        #timer-fill { width: 0%; height: 100%; background: var(--blood); transition: width 0.2s linear; }
+        .bar-container { width: 100%; height: 6px; background: #050505; }
+        #bar { width: 0%; height: 100%; background: var(--red); box-shadow: 0 0 10px var(--red); transition: width 0.2s linear; }
 
-        #grid { display: grid; grid-template-columns: repeat(9, 1fr); width: 95vw; height: 95vw; max-width: 380px; max-height: 380px; background: #111; border: 2px solid #000; margin: 15px 0; }
-        .tile { background: #000; border: 0.5px solid #111; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #fff; }
-        .tile.fixed { color: #333; }
-        .tile.selected { background: #1a0000; outline: 1px solid var(--blood); color: var(--bright); }
-        .tile.error { animation: glitch 0.2s infinite; color: var(--bright); }
+        #grid { display: grid; grid-template-columns: repeat(9, 1fr); width: 95vw; height: 95vw; max-width: 380px; max-height: 380px; background: #111; border: 2px solid #222; margin: 15px 0; }
+        .tile { background: #000; border: 0.5px solid #151515; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #fff; }
+        .tile.fixed { color: #444; }
+        .tile.selected { background: #200; outline: 1px solid var(--red); color: var(--red); }
+        .tile.err { animation: shake 0.2s infinite; color: var(--red); }
 
-        @keyframes glitch { 0% { transform: translate(2px,0); } 50% { transform: translate(-2px,0); filter: hue-rotate(90deg); } 100% { transform: translate(0,0); } }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(0,0); } }
 
         /* CLAVIER */
-        .keys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 95%; max-width: 380px; }
-        .k { background: #080808; border: 1px solid #111; color: #666; padding: 18px 0; font-size: 1.3rem; border-radius: 4px; text-align: center; }
-        .k:active { background: var(--blood); color: #fff; }
+        .numpad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 95%; max-width: 380px; }
+        .key { background: #0a0a0a; border: 1px solid #222; color: #777; padding: 18px 0; font-size: 1.3rem; border-radius: 4px; text-align: center; }
+        .key:active { background: var(--red); color: #fff; }
 
-        /* SCREAMER */
-        #screamer { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; align-items: center; justify-content: center; }
-        #screamer img { width: 100%; height: 100%; object-fit: cover; filter: contrast(2) brightness(0.8); }
-
-        /* OVERLAY START */
-        #init { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #start-btn { background: none; border: 1px solid var(--blood); color: var(--blood); padding: 15px 40px; font-size: 1.2rem; cursor: pointer; letter-spacing: 3px; margin-top: 30px; }
-        #name-in { background: none; border: none; border-bottom: 1px solid #333; color: #fff; font-size: 1.5rem; text-align: center; outline: none; }
+        /* OVERLAYS */
+        #screamer { position: fixed; inset: 0; background: #000; z-index: 9999; display: none; }
+        #screamer img { width: 100%; height: 100%; object-fit: cover; }
+        #menu { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #start-btn { background: none; border: 1px solid var(--red); color: var(--red); padding: 15px 40px; font-size: 1.2rem; cursor: pointer; letter-spacing: 3px; margin-top: 30px; }
+        #name-in { background: none; border: none; border-bottom: 2px solid var(--dark-red); color: #fff; font-size: 1.5rem; text-align: center; outline: none; padding: 10px; }
     </style>
 </head>
 <body>
 
-<div class="vhs-effect"></div>
+<div class="vhs"></div>
 <div id="screamer"><img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXZueXJueXJueXJueXJueXJueXJueXJueXJueXJueXJudSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKv6MgQxcfPzDUY/giphy.gif"></div>
 
-<div id="init">
-    <h1 style="color:var(--blood); letter-spacing: 8px;">SUDOKU OR DIE</h1>
-    <input type="text" id="name-in" placeholder="TON NOM..." maxlength="12">
-    <button id="start-btn" onclick="boot()">OFFRIR MON ÂME</button>
+<div id="menu">
+    <h1 style="color:var(--red); letter-spacing: 10px;">SUDOKU OR DIE</h1>
+    <input type="text" id="name-in" placeholder="NOM DE L'ÂME" maxlength="12">
+    <button id="start-btn" onclick="start()">VENDRE SON ÂME</button>
 </div>
 
-<div id="dialogue-zone"><div id="text-content">...</div></div>
-<div class="timer-bg"><div id="timer-fill"></div></div>
+<div id="diag-box"><div id="text">...</div></div>
+<div class="bar-container"><div id="bar"></div></div>
 <div id="grid"></div>
-<div class="keys">
-    <script>for(let i=1; i<=9; i++) document.write(`<div class="k" onclick="hit(${i})">${i}</div>`);</script>
-    <div class="k" onclick="hit(0)" style="color:var(--blood)">X</div>
+<div class="numpad">
+    <script>for(let i=1; i<=9; i++) document.write(`<div class="key" onclick="press(${i})">${i}</div>`);</script>
+    <div class="key" onclick="press(0)" style="color:var(--red)">X</div>
 </div>
 
 <script>
     let pName = "";
-    let cur = null;
+    let sel = null;
     let threat = 0;
     let level = 1;
     let active = false;
     let lastAct = Date.now();
-    let sol = [];
+    let solution = [];
+    let speakLock = false;
 
-    const lines = [
-        "Je sens ton souffle, [N].", "Tes fautes me nourrissent, [N].", "Le noir te regarde, [N].",
-        "Tu es si lent, [N].", "Regarde derrière toi, [N].", "J'entends ton sang, [N].",
-        "Tu ne sortiras pas, [N].", "Encore une erreur, [N] ?", "Ta peur est délicieuse, [N].",
-        "Le vide t'appelle, [N].", "Respire tant que tu peux, [N].", "Je suis dans tes murs, [N].",
-        "Abandonne, [N].", "Tu n'es rien ici, [N].", "Ton heure approche, [N].",
-        "Fais un geste, [N].", "La mort est douce, [N].", "Ne crie pas, [N].",
-        "Je possède ton temps, [N].", "Tu es à moi, [N]."
-    ];
+    // --- LOGIQUE DE DIALOGUES ---
+    const bank = {
+        start: ["Bienvenue [N], j'espère que tu ne vas pas mourir trop vite...", "Ah, une nouvelle proie nommée [N]. Commence."],
+        idle: ["Bah quoi, tu trembles déjà de peur [N] ?", "Alors [N], on ne sait plus jouer ?", "Le temps presse, [N]... je t'attends.", "Je sens ton odeur d'ici, [N].", "Regarde derrière toi [N], oups... trop tard."],
+        error: ["Tu ne sais pas jouer mon petit [N] ?", "Bah alors, tu pues la merde à ce point [N] ?", "Continue comme ça, j'ai hâte de te dévorer [N] !", "Encore une erreur ? Hahaha continue, j'adore ça [N].", "Même un rat jouerait mieux que toi, [N]."],
+        win: ["Putain, tu as passé le niveau [L]. Tu as eu de la chance [N].", "Niveau suivant. Ma faim grandit, [N].", "Ne sois pas trop fier, [N]. Le pire arrive."],
+        threat: ["J'ai faim [N]... s'il te plaît, perd pour que je puisse te manger.", "Je sens ton âme glisser vers moi, [N].", "Encore un peu d'effort et tu es à moi, [N]."]
+    };
 
-    function boot() {
-        pName = document.getElementById('name-in').value || "Mortel";
-        document.getElementById('init').style.display = 'none';
+    // --- SONS ---
+    const audio = {
+        tick: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-clock-tick-1052.mp3'),
+        breath: new Audio('https://www.soundjay.com/human/sounds/human-breath-1.mp3'),
+        hit: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-typewriter-soft-click-1125.mp3'),
+        err: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-industrial-alarm-tone-939.mp3'),
+        scary: new Audio('https://assets.mixkit.co/sfx/preview/mixkit-creature-roar-278.mp3')
+    };
+
+    function start() {
+        pName = document.getElementById('name-in').value || "Inconnu";
+        document.getElementById('menu').style.display = 'none';
         active = true;
-        setup();
-        loop();
-        breath();
+        initGrid();
+        gameLoop();
+        voiceLoop();
+        ambiance();
+        talk('start');
     }
 
-    function setup() {
+    function initGrid() {
         const g = document.getElementById('grid'); g.innerHTML = '';
-        let base = "534678912672195348198342567859761423426853791713924856961537284287419635345286179".split('');
-        sol = base;
-        let fill = Math.max(78 - (level * 8), 10);
+        let s = "534678912672195348198342567859761423426853791713924856961537284287419635345286179".split('');
+        solution = s;
+        let fill = Math.max(80 - (level * 10), 15);
         for(let i=0; i<81; i++) {
             let t = document.createElement('div');
             t.className = 'tile';
-            if(Math.random() * 81 < fill) { t.innerText = sol[i]; t.classList.add('fixed'); }
-            t.onclick = () => { if(!t.classList.contains('fixed')) { if(cur) cur.classList.remove('selected'); cur = t; t.classList.add('selected'); lastAct = Date.now(); } };
+            if(Math.random() * 81 < fill) { t.innerText = s[i]; t.classList.add('fixed'); }
+            t.onclick = () => { 
+                if(!t.classList.contains('fixed')) { 
+                    if(sel) sel.classList.remove('selected'); 
+                    sel = t; t.classList.add('selected'); 
+                    audio.hit.play(); 
+                    lastAct = Date.now();
+                } 
+            };
             g.appendChild(t);
         }
     }
 
-    function hit(n) {
-        if(!cur || !active) return;
+    function press(n) {
+        if(!sel || !active) return;
         lastAct = Date.now();
-        let idx = Array.from(document.getElementById('grid').children).indexOf(cur);
-        if(n === 0) { cur.innerText = ""; return; }
-        cur.innerText = n;
-        if(n != sol[idx]) {
-            cur.classList.add('error');
-            threat += 10;
-            speak("Erreur fatale, " + pName);
-            setTimeout(() => cur.classList.remove('error'), 400);
+        let idx = Array.from(document.getElementById('grid').children).indexOf(sel);
+        audio.hit.play();
+        if(n === 0) { sel.innerText = ""; return; }
+        sel.innerText = n;
+        if(n != solution[idx]) {
+            sel.classList.add('err');
+            threat += 12;
+            audio.err.play();
+            talk('error');
+            setTimeout(() => sel.classList.remove('err'), 400);
         } else {
-            cur.style.color = "#0f0";
-            check();
+            sel.style.color = "#0f0";
+            checkWin();
         }
     }
 
-    function loop() {
+    function gameLoop() {
         if(!active) return;
-        threat += (0.12 * level);
-        document.getElementById('timer-fill').style.width = threat + "%";
+        threat += (0.15 * level);
+        document.getElementById('bar').style.width = threat + "%";
+        
+        // Son Tic-Tac
+        audio.tick.playbackRate = 1 + (threat / 50);
+        audio.tick.play();
 
-        // GESTION INACTIVITÉ (SCREAMER)
-        let idle = Date.now() - lastAct;
-        if(idle > 20000) { triggerScreamer(); return; }
-
-        if(Math.random() < 0.01) {
-            let l = lines[Math.floor(Math.random()*lines.length)].replace("[N]", pName);
-            document.getElementById('text-content').innerText = l;
-            speak(l);
-        }
-
-        if(threat >= 100) die();
-        else setTimeout(loop, 100);
+        // Screamer inactivité
+        if(Date.now() - lastAct > 20000) { scream(); return; }
+        
+        if(threat >= 100) gameOver();
+        else setTimeout(gameLoop, 1000);
     }
 
-    function breath() {
+    function voiceLoop() {
         if(!active) return;
-        let b = new Audio('https://www.soundjay.com/human/sounds/human-breath-1.mp3');
-        b.volume = 0.3;
-        b.play().catch(()=>{});
-        setTimeout(breath, Math.max(500, 2000 - (threat * 15)));
+        setTimeout(() => {
+            if(!speakLock && active) {
+                if(threat > 70) talk('threat');
+                else talk('idle');
+            }
+            voiceLoop();
+        }, 12000); // Parle toutes les 12 sec environ
     }
 
-    function speak(t) {
+    function ambiance() {
+        if(!active) return;
+        audio.breath.volume = 0.2;
+        audio.breath.playbackRate = 0.8 + (threat / 100);
+        audio.breath.play();
+        setTimeout(ambiance, 3000);
+    }
+
+    function talk(type) {
+        if(speakLock || !active) return;
+        speakLock = true;
+        let lines = bank[type];
+        let raw = lines[Math.floor(Math.random()*lines.length)];
+        let txt = raw.replace("[N]", pName).replace("[L]", level);
+        
+        document.getElementById('text').innerText = txt;
+        
         window.speechSynthesis.cancel();
-        let m = new SpeechSynthesisUtterance(t);
-        m.lang = 'fr-FR'; m.pitch = 0.1; m.rate = 0.6;
+        let m = new SpeechSynthesisUtterance(txt);
+        m.lang = 'fr-FR'; m.pitch = 0.1; m.rate = 0.8;
+        m.onend = () => { setTimeout(() => { speakLock = false; }, 3000); }; // Pause 3s obligatoire
         window.speechSynthesis.speak(m);
     }
 
-    function triggerScreamer() {
-        active = false;
-        let s = document.getElementById('screamer');
-        s.style.display = 'flex';
-        let a = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-creature-roar-278.mp3');
-        a.volume = 1; a.play();
-        speak("JE T'AI TROUVÉ, " + pName);
-        setTimeout(() => location.reload(), 3000);
-    }
-
-    function check() {
+    function checkWin() {
         let tiles = document.querySelectorAll('.tile');
-        let win = true;
-        tiles.forEach((t, i) => { if(t.innerText != sol[i]) win = false; });
+        let win = Array.from(tiles).every((t, i) => t.innerText == solution[i]);
         if(win) {
-            level++; threat = Math.max(0, threat - 40);
-            speak("Étage " + (level-1) + " fini. Tu ne tiendras pas le suivant, " + pName);
-            setup();
+            talk('win');
+            level++; threat = Math.max(0, threat - 30);
+            setTimeout(initGrid, 2000);
         }
     }
 
-    function die() {
+    function scream() {
         active = false;
-        document.body.innerHTML = `<h1 style="color:red; margin-top:40vh; text-align:center;">ÂME DÉVORÉE, ${pName}</h1>`;
-        speak("Ton temps est fini, " + pName);
-        setTimeout(() => location.reload(), 4000);
+        document.getElementById('screamer').style.display = 'block';
+        audio.scary.play();
+        setTimeout(() => location.reload(), 3000);
+    }
+
+    function gameOver() {
+        active = false;
+        document.body.innerHTML = `<h1 style="color:red; margin-top:45vh; text-align:center;">${pName} EST DÉVORÉ</h1>`;
+        let m = new SpeechSynthesisUtterance("J'ai enfin mon repas. Adieu " + pName);
+        m.pitch = 0.1; window.speechSynthesis.speak(m);
+        setTimeout(() => location.reload(), 5000);
     }
 </script>
 </body>
