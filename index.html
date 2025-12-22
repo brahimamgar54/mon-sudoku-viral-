@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUDOKU OR DIE</title>
+    <style>
+        :root { --neon: #00f2ea; --blood: #ff4d4d; }
+        body { background-color: #050505; color: white; font-family: 'Courier New', monospace; overflow: hidden; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .scene { position: relative; width: 100%; max-width: 500px; padding: 20px; background: radial-gradient(circle at 50% 40%, rgba(255,255,200,0.1) 0%, rgba(0,0,0,1) 80%); }
+        #monster-dialogue { height: 60px; text-align: center; color: var(--blood); font-style: italic; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem; transition: 0.5s; }
+        .timer-area { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; color: #666; }
+        #game-board { display: grid; grid-template-columns: repeat(9, 1fr); gap: 1px; background-color: #222; border: 3px solid #111; margin: 0 auto; width: 90vw; max-width: 380px; aspect-ratio: 1; box-shadow: 0 0 100px rgba(0,0,0,1); }
+        .tile { background-color: #f0f0f0; color: #111; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+        .tile.selected { background-color: #ccc; box-shadow: inset 0 0 10px var(--neon); }
+        .tile.prefilled { background-color: #d0d0d0; color: #666; pointer-events: none; }
+        .numpad { display: flex; justify-content: center; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
+        .num-btn { background: #111; color: white; border: 1px solid #333; padding: 12px; border-radius: 4px; cursor: pointer; min-width: 40px; }
+        .progress-container { width: 100%; height: 6px; background: #111; margin: 10px 0; border: 1px solid #222; overflow: hidden; }
+        #monster-progress { width: 0%; height: 100%; background: var(--blood); box-shadow: 0 0 10px var(--blood); }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .gun-anim { font-size: 5rem; margin-bottom: 20px; }
+        button#start-btn { background: var(--blood); color: black; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+<div id="overlay">
+    <div id="start-screen">
+        <h1 style="color:var(--blood); letter-spacing: 5px;">SUDOKU OR DIE</h1>
+        <p>"Il t'attend à table."</p>
+        <button id="start-btn" onclick="firstStart()">ENTRER DANS LA PIÈCE</button>
+    </div>
+    <div id="death-screen" style="display:none">
+        <div class="gun-anim">🔫</div>
+        <h1 style="color:var(--blood)">TU ES MORT</h1>
+        <p id="death-msg">Le monstre a été plus rapide.</p>
+        <button onclick="location.reload()" style="background:none; color:white; border:1px solid white; padding:10px;">RESSUSCITER</button>
+    </div>
+</div>
+
+<div class="scene">
+    <div id="monster-dialogue">...</div>
+    <div class="timer-area">
+        <span>Niveau <span id="level-val">1</span>/100</span>
+        <span style="color:var(--blood)">SON AVANCEMENT: <span id="monster-val">0</span>%</span>
+    </div>
+    <div class="progress-container"><div id="monster-progress"></div></div>
+    <div id="game-board"></div>
+    <div class="numpad" id="numpad"></div>
+</div>
+
+<script>
+    let currentLevel = 1;
+    let selectedTile = null;
+    let solution = [];
+    let monsterPercent = 0;
+    let monsterInterval;
+    
+    // SONS (Utilisation de l'AudioContext pour des bips d'horreur sans fichiers externes)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playSound(freq, type, duration, vol=0.1) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playHeartbeat() {
+        playSound(60, 'sine', 0.1, 0.2);
+        setTimeout(() => playSound(55, 'sine', 0.1, 0.15), 150);
+    }
+
+    function playGunShot() {
+        const bufferSize = audioCtx.sampleRate * 0.5;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseFilter = audioCtx.createBiquadFilter();
+        noiseFilter.type = 'lowpass'; noiseFilter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+        noise.connect(noiseFilter); noiseFilter.connect(audioCtx.destination);
+        noise.start();
+    }
+
+    const dialogues = [
+        "J'aime quand tes mains tremblent...",
+        "Ma mère disait que j'étais un monstre en maths. Littéralement.",
+        "Le savais-tu ? Le cerveau humain s'éteint en 7 secondes après une balle.",
+        "Tu es lent... j'entends ton cœur d'ici.",
+        "Mon fils est mort à ce niveau. Ne le déçois pas.",
+        "100 niveaux ? Personne n'a jamais dépassé le 5."
+    ];
+
+    function firstStart() {
+        audioCtx.resume();
+        document.getElementById("overlay").style.display = "none";
+        initBoard();
+        createNumpad();
+        startLevel();
+    }
+
+    function initBoard() {
+        const board = document.getElementById("game-board");
+        for (let i = 0; i < 81; i++) {
+            let tile = document.createElement("div");
+            tile.id = Math.floor(i/9) + "-" + (i%9);
+            tile.classList.add("tile");
+            tile.onclick = function() {
+                playSound(440, 'triangle', 0.05, 0.05); // Son de sélection
+                if (selectedTile) selectedTile.classList.remove("selected");
+                selectedTile = this;
+                selectedTile.classList.add("selected");
+            };
+            board.appendChild(tile);
+        }
+    }
+
+    function createNumpad() {
+        const numpad = document.getElementById("numpad");
+        for (let i = 1; i <= 9; i++) {
+            let btn = document.createElement("button");
+            btn.innerText = i; btn.classList.add("num-btn");
+            btn.onclick = () => {
+                if (selectedTile && !selectedTile.classList.contains("prefilled")) {
+                    playSound(800, 'sine', 0.05, 0.1); // Son d'écriture
+                    selectedTile.innerText = i;
+                    checkWin();
+                }
+            };
+            numpad.appendChild(btn);
+        }
+    }
+
+    function startLevel() {
+        if(currentLevel > 100) { winGame(); return; }
+        document.getElementById("level-val").innerText = currentLevel;
+        monsterPercent = 0;
+        updateMonsterUI();
+        generateSudoku();
+        clearInterval(monsterInterval);
+        let speed = Math.max(2500 - (currentLevel * 20), 400); 
+        monsterInterval = setInterval(monsterStep, speed);
+        document.getElementById("monster-dialogue").innerText = `"${dialogues[Math.floor(Math.random()*dialogues.length)]}"`;
+    }
+
+    function monsterStep() {
+        monsterPercent += 2;
+        updateMonsterUI();
+        if(monsterPercent > 70) playHeartbeat(); // Le cœur bat quand il est proche de gagner
+        if (monsterPercent >= 100) gameOver();
+    }
+
+    function updateMonsterUI() {
+        document.getElementById("monster-progress").style.width = monsterPercent + "%";
+        document.getElementById("monster-val").innerText = monsterPercent;
+    }
+
+    function generateSudoku() {
+        let base = ["534678912", "672195348", "198342567", "859761423", "426853791", "713924856", "961537284", "287419635", "345286179"];
+        solution = base.map(row => row.split(''));
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                let tile = document.getElementById(r + "-" + c);
+                tile.innerText = ""; tile.classList.remove("prefilled");
+                let diff = Math.max(0.6 - (currentLevel * 0.005), 0.15);
+                if (Math.random() < diff) {
+                    tile.innerText = solution[r][c];
+                    tile.classList.add("prefilled");
+                }
+            }
+        }
+    }
+
+    function checkWin() {
+        let win = true;
+        for (let r = 0; r < 9; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (document.getElementById(r + "-" + c).innerText != solution[r][c]) win = false;
+            }
+        }
+        if (win) {
+            clearInterval(monsterInterval);
+            playSound(1200, 'sine', 0.2, 0.1);
+            currentLevel++;
+            setTimeout(startLevel, 1000);
+        }
+    }
+
+    function gameOver() {
+        clearInterval(monsterInterval);
+        playGunShot();
+        document.getElementById("overlay").style.display = "flex";
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("death-screen").style.display = "block";
+    }
+
+    function winGame() {
+        clearInterval(monsterInterval);
+        playGunShot();
+        document.getElementById("overlay").style.display = "flex";
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("death-screen").style.display = "block";
+        document.querySelector(".gun-anim").innerText = "😵🔫";
+        document.getElementById("death-msg").innerText = "Tu as gagné... il s'est suicidé sous tes yeux.";
+    }
+</script>
+</body>
+</html>
