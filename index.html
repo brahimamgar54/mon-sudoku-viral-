@@ -5,20 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>SOUL TRAP: FINAL</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-        /* --- VARIABLES GLOBALES --- */
-        :root {
-            --main: #00ff00;
-            --bg: #000000;
-            --accent: #111;
-            --error: #ff0000;
-            --panic: #00ffff;
-            --text: #ffffff;
-        }
 
         /* --- RESET & BASES --- */
         * {
@@ -37,97 +26,106 @@
         }
 
         body {
-            background: var(--bg);
-            color: var(--text);
+            background: #000000;
+            color: #00ff00;
             font-family: 'VT323', monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
-            padding: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            opacity: 0;
+            animation: fadeIn 2s forwards;
         }
 
-        /* --- ARÈNES (Thèmes Dynamiques) --- */
-        
-        /* ARÈNE 1 : Le Tribunal (Niv 1-25) - Vert Matrix */
-        body.arena-1 {
-            --main: #00ff00;
-            --bg: #000000;
-            --text: #00ff00;
-            background: radial-gradient(circle at center, #001100 0%, #000000 100%);
-            filter: contrast(1.2);
+        @keyframes fadeIn {
+            to { opacity: 1; }
         }
 
-        /* ARÈNE 2 : La Chair (Niv 26-50) - Rouge Organique */
-        body.arena-2 {
-            --main: #ff4444;
-            --bg: #1a0505;
-            --text: #ff8888;
-            background: radial-gradient(circle at 30% 30%, #3a0505 0%, #1a0505 50%, #000000 100%);
-            animation: pulse-heart 15s infinite alternate;
-        }
-
-        @keyframes pulse-heart {
-            0% { background-size: 100% 100%; }
-            100% { background-size: 110% 110%; }
-        }
-
-        /* ARÈNE 3 : Le Vide (Niv 51-75) - Violet Distordu */
-        body.arena-3 {
-            --main: #aa00ff;
-            --bg: #05001a;
-            --text: #cc88ff;
-            animation: glitch 3s infinite;
-            filter: blur(0.3px) hue-rotate(0deg);
-        }
-
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            2% { transform: translate(-1px, 1px); }
-            4% { transform: translate(1px, -1px); }
-            6% { transform: translate(-1px, -1px); }
-            8% { transform: translate(1px, 1px); }
-            10% { transform: translate(0); }
-            100% { transform: translate(0); }
-        }
-
-        /* ARÈNE 4 : Le Pandémonium (Niv 76-100) - Rouge Enfer */
-        body.arena-4 {
-            --main: #ff0000;
-            --bg: #000000;
-            --text: #ff5555;
-            animation: inferno 2s infinite alternate;
-            background: 
-                radial-gradient(circle at 20% 20%, rgba(255,0,0,0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(139,0,0,0.1) 0%, transparent 50%),
-                black;
-        }
-
-        @keyframes inferno {
-            0% { box-shadow: inset 0 0 100px rgba(255,0,0,0.3); }
-            100% { box-shadow: inset 0 0 200px rgba(255,50,50,0.5); }
-        }
-
-        /* --- OVERLAYS --- */
-        .overlay {
+        /* --- ANIMATION INTRO --- */
+        #intro-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.95);
-            z-index: 1000;
+            background: #000;
+            z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
             text-align: center;
-            transition: opacity 0.5s;
+        }
+
+        .glitch {
+            font-size: 4rem;
+            color: #00ff00;
+            text-shadow: 
+                0.05em 0 0 #ff0000,
+                -0.03em -0.04em 0 #0000ff,
+                0.025em 0.04em 0 #ffff00;
+            animation: glitch 725ms infinite;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        .typewriter {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 0.15em solid #00ff00;
+            animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #00ff00; }
+        }
+
+        /* --- ANIMATION MORT --- */
+        .death-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9998;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .blood-drip {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 0;
+            background: linear-gradient(to bottom, transparent, #ff0000 70%, #880000);
+            animation: drip 2s forwards;
+        }
+
+        @keyframes drip {
+            to { height: 100%; }
         }
 
         /* --- INTERFACE PRINCIPALE --- */
@@ -138,64 +136,59 @@
             display: none;
             flex-direction: column;
             justify-content: space-between;
-            padding: 10px;
+            padding: 15px;
             position: relative;
             z-index: 10;
         }
 
-        /* En-tête */
+        /* En-tête avec timer */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             margin-bottom: 10px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid var(--main);
         }
 
-        .arena-display {
-            font-size: 0.9rem;
-            color: var(--main);
-            opacity: 0.8;
+        .timer {
+            font-size: 1.5rem;
+            color: #ff5555;
+            text-shadow: 0 0 10px #ff0000;
         }
 
-        /* Barre de stress */
-        .stress-container {
+        /* Barre de temps */
+        .time-container {
             width: 100%;
             height: 8px;
             background: rgba(255,255,255,0.1);
             border-radius: 4px;
             overflow: hidden;
-            margin: 5px 0 15px 0;
-            position: relative;
+            margin-bottom: 15px;
         }
 
-        #stress-bar {
+        #time-bar {
             height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--main) 0%, var(--error) 100%);
-            transition: width 0.3s ease-out;
-            border-radius: 4px;
+            width: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
+            transition: width 0.5s linear;
         }
 
-        /* Boîte du démon */
+        /* Dialogue du démon */
         #demon-box {
             min-height: 100px;
-            border: 2px solid var(--main);
-            background: rgba(0,0,0,0.8);
+            border: 2px solid #00ff00;
+            background: rgba(0,0,0,0.9);
             padding: 15px;
             margin: 10px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             text-align: center;
             font-size: 1.4rem;
             line-height: 1.3;
-            text-shadow: 0 0 10px var(--main);
-            box-shadow: 0 0 20px rgba(0,255,0,0.1);
+            text-shadow: 0 0 10px #00ff00;
+            box-shadow: 0 0 20px rgba(0,255,0,0.2);
             border-radius: 5px;
-            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Grille Sudoku */
@@ -205,9 +198,9 @@
             max-width: 450px;
             margin: 0 auto;
             padding: 2px;
-            background: var(--main);
+            background: #00ff00;
             border-radius: 3px;
-            box-shadow: 0 0 30px rgba(0,255,0,0.2);
+            box-shadow: 0 0 30px rgba(0,255,0,0.3);
         }
 
         #grid {
@@ -217,37 +210,46 @@
             gap: 1px;
             width: 100%;
             height: 100%;
-            background: var(--main);
+            background: #00ff00;
         }
 
         .cell {
-            background: var(--bg);
+            background: #000;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.6rem;
             cursor: pointer;
-            color: var(--text);
-            position: relative;
+            color: #fff;
             transition: all 0.2s;
         }
 
         .cell.fixed {
-            color: var(--main);
+            color: #00ff00;
             opacity: 0.8;
             pointer-events: none;
         }
 
         .cell.selected {
-            background: var(--main);
-            color: var(--bg);
+            background: #00ff00;
+            color: #000;
             transform: scale(0.95);
-            box-shadow: 0 0 15px var(--main);
-            z-index: 2;
+            box-shadow: 0 0 15px #00ff00;
+        }
+
+        .cell.correct {
+            background: #00aa00;
+            animation: pulse 0.3s;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
         }
 
         .cell.wrong {
-            background: var(--error);
+            background: #ff0000;
             color: white;
             animation: shake 0.3s;
         }
@@ -271,7 +273,7 @@
 
         .key {
             height: 50px;
-            border: 2px solid var(--main);
+            border: 2px solid #00ff00;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -280,57 +282,50 @@
             border-radius: 5px;
             cursor: pointer;
             transition: all 0.1s;
-            -webkit-touch-callout: none;
         }
 
         .key:active {
-            background: var(--main);
-            color: var(--bg);
+            background: #00ff00;
+            color: #000;
             transform: scale(0.92);
         }
 
         .key.clear {
-            color: var(--error);
-            border-color: var(--error);
+            color: #ff0000;
+            border-color: #ff0000;
         }
 
-        /* Bouton de miséricorde */
-        #mercy-btn {
+        /* Overlay de questions */
+        #question-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 15px;
-            margin-top: 15px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            border: 1px solid white;
-            font-family: inherit;
-            font-size: 1.2rem;
-            cursor: pointer;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 1000;
             display: none;
-            animation: mercy-pulse 3s infinite;
-            border-radius: 5px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
         }
 
-        @keyframes mercy-pulse {
-            0%, 100% { opacity: 0.7; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
-            50% { opacity: 1; box-shadow: 0 0 20px rgba(255,255,255,0.6); }
-        }
-
-        /* Questions psychologiques */
-        #psy-question {
-            font-size: 1.8rem;
+        .question-text {
+            font-size: 2rem;
             margin-bottom: 30px;
             line-height: 1.4;
-            text-shadow: 0 0 10px var(--main);
-            max-width: 90%;
+            text-shadow: 0 0 10px #00ff00;
         }
 
-        #psy-input {
+        .answer-input {
             width: 80%;
             max-width: 300px;
             background: transparent;
             border: none;
-            border-bottom: 2px solid var(--main);
-            color: var(--text);
+            border-bottom: 2px solid #00ff00;
+            color: #fff;
             font-family: inherit;
             font-size: 2rem;
             text-align: center;
@@ -340,55 +335,16 @@
             text-transform: uppercase;
         }
 
-        .psy-btn {
+        .submit-btn {
             margin-top: 40px;
             padding: 15px 40px;
             background: rgba(0,0,0,0.8);
-            color: var(--main);
-            border: 2px solid var(--main);
+            color: #00ff00;
+            border: 2px solid #00ff00;
             font-family: inherit;
             font-size: 1.5rem;
             cursor: pointer;
-            text-transform: uppercase;
             border-radius: 5px;
-        }
-
-        .psy-btn:active {
-            background: var(--main);
-            color: var(--bg);
-        }
-
-        /* Démons secondaires (Arène 4) */
-        .demon-whisper {
-            position: fixed;
-            width: 180px;
-            padding: 10px;
-            background: rgba(0,0,0,0.9);
-            border: 1px solid;
-            font-size: 0.9rem;
-            opacity: 0;
-            transition: opacity 0.5s;
-            pointer-events: none;
-            z-index: 5;
-            border-radius: 3px;
-        }
-
-        #whisper-1 { top: 15%; left: 5%; border-color: #ff5555; color: #ff5555; }
-        #whisper-2 { top: 15%; right: 5%; border-color: #ffff55; color: #ffff55; }
-        #whisper-3 { bottom: 20%; left: 5%; border-color: #55ffff; color: #55ffff; }
-        #whisper-4 { bottom: 20%; right: 5%; border-color: #ff55ff; color: #ff55ff; }
-
-        /* Effets visuels spéciaux */
-        .blood-effect {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, transparent 30%, rgba(255,0,0,0.1) 70%);
-            pointer-events: none;
-            z-index: 1;
-            opacity: 0;
         }
 
         /* Responsive */
@@ -399,48 +355,51 @@
         }
 
         @media (max-width: 400px) {
-            .header { font-size: 1.2rem; }
+            .header { font-size: 1rem; }
+            .timer { font-size: 1.3rem; }
             #demon-box { font-size: 1.2rem; padding: 10px; }
             .cell { font-size: 1.4rem; }
             .key { height: 40px; font-size: 1.5rem; }
         }
     </style>
 </head>
-<body class="arena-1">
+<body>
 
-<!-- Écran de démarrage -->
-<div id="start-screen" class="overlay">
-    <h1 style="font-size: 3.5rem; margin-bottom: 20px; color: var(--main); text-shadow: 0 0 20px var(--main);">SOUL TRAP</h1>
-    <p style="font-size: 1.4rem; margin-bottom: 10px;">ACTIVE LE SON.</p>
-    <p style="font-size: 1.4rem; margin-bottom: 40px;">NE QUITTE PAS.</p>
-    <button class="psy-btn" onclick="SOULTRAP.init()">COMMENCER</button>
+<!-- Écran d'introduction -->
+<div id="intro-screen">
+    <div class="glitch">SOUL TRAP</div>
+    <div class="typewriter">LA PARTIE VA COMMENCER...</div>
 </div>
 
-<!-- Écran de profilage psychologique -->
-<div id="psy-screen" class="overlay" style="display:none">
-    <div id="psy-question">...</div>
-    <input type="text" id="psy-input" autocomplete="off" autocorrect="off" autocapitalize="characters">
-    <button class="psy-btn" onclick="SOULTRAP.submitPsy()">RÉPONDRE</button>
+<!-- Écran de mort -->
+<div id="death-screen" class="death-screen">
+    <div class="blood-drip"></div>
+    <div id="death-message" style="font-size: 3rem; color: #ff0000; margin-top: 2rem;"></div>
+    <div id="death-subtitle" style="font-size: 1.5rem; margin-top: 1rem; color: #aaa;"></div>
+</div>
+
+<!-- Overlay de questions -->
+<div id="question-overlay">
+    <div id="question-text" class="question-text"></div>
+    <input type="text" id="answer-input" class="answer-input" autocomplete="off">
+    <button id="submit-answer" class="submit-btn">RÉPONDRE</button>
 </div>
 
 <!-- Interface principale -->
 <div id="ui-layer">
     <!-- En-tête -->
     <div class="header">
-        <div>
-            NIV <span id="lvl-display">1</span>/100<br>
-            <span class="arena-display" id="arena-display">LE TRIBUNAL</span>
-        </div>
-        <div id="player-name" style="text-align: right;">JOUEUR</div>
+        <div>NIV <span id="level-display">1</span>/100</div>
+        <div class="timer" id="timer">60.0</div>
     </div>
 
-    <!-- Barre de stress -->
-    <div class="stress-container">
-        <div id="stress-bar"></div>
+    <!-- Barre de temps -->
+    <div class="time-container">
+        <div id="time-bar"></div>
     </div>
 
     <!-- Dialogue du démon -->
-    <div id="demon-box">JE T'OBSERVE.</div>
+    <div id="demon-box">INITIALISATION...</div>
 
     <!-- Grille Sudoku -->
     <div id="grid-container">
@@ -449,312 +408,344 @@
 
     <!-- Clavier -->
     <div id="keypad">
-        <div class="key" onclick="SOULTRAP.input(1)">1</div>
-        <div class="key" onclick="SOULTRAP.input(2)">2</div>
-        <div class="key" onclick="SOULTRAP.input(3)">3</div>
-        <div class="key" onclick="SOULTRAP.input(4)">4</div>
-        <div class="key" onclick="SOULTRAP.input(5)">5</div>
-        <div class="key" onclick="SOULTRAP.input(6)">6</div>
-        <div class="key" onclick="SOULTRAP.input(7)">7</div>
-        <div class="key" onclick="SOULTRAP.input(8)">8</div>
-        <div class="key" onclick="SOULTRAP.input(9)">9</div>
-        <div class="key clear" onclick="SOULTRAP.input('X')">X</div>
+        <div class="key" onclick="GAME.input(1)">1</div>
+        <div class="key" onclick="GAME.input(2)">2</div>
+        <div class="key" onclick="GAME.input(3)">3</div>
+        <div class="key" onclick="GAME.input(4)">4</div>
+        <div class="key" onclick="GAME.input(5)">5</div>
+        <div class="key" onclick="GAME.input(6)">6</div>
+        <div class="key" onclick="GAME.input(7)">7</div>
+        <div class="key" onclick="GAME.input(8)">8</div>
+        <div class="key" onclick="GAME.input(9)">9</div>
+        <div class="key clear" onclick="GAME.input('X')">X</div>
     </div>
-
-    <!-- Bouton de miséricorde -->
-    <button id="mercy-btn" onclick="SOULTRAP.mercy()">ÉPARGNER LE DÉMON</button>
 </div>
-
-<!-- Démons secondaires (Arène 4) -->
-<div id="whisper-1" class="demon-whisper"></div>
-<div id="whisper-2" class="demon-whisper"></div>
-<div id="whisper-3" class="demon-whisper"></div>
-<div id="whisper-4" class="demon-whisper"></div>
-
-<!-- Effet sang -->
-<div class="blood-effect" id="blood-effect"></div>
 
 <script>
 // ============================================================================
-// MOTEUR DE JEU PRINCIPAL - SOUL TRAP
+// BASE DE DONNÉES DE DIALOGUES (100+ PHRASES)
 // ============================================================================
 
-const SOULTRAP = {
+const DEMON_DIALOGUES = {
+    // Dialogues de début de niveau
+    start: [
+        "NOUS COMMENÇONS, {name}.",
+        "PRÊT À SOUFFRIR, {name} ?",
+        "REGARDE-MOI BIEN, {name}.",
+        "TA PEUR M'ALIMENTE, {name}.",
+        "NE CLIGNE PAS DES YEUX, {name}.",
+        "JE TE SENS TREMBLER, {name}.",
+        "C'EST POUR TOI, {name}.",
+        "CONCENTRE-TOI, {name}.",
+        "LE TEMPS PRESSE, {name}.",
+        "REGARDE LA GRILLE, {name}."
+    ],
+    
+    // Quand le joueur réussit une case
+    correct: [
+        "BIEN, {name}. CONTINUE.",
+        "UNE DE MOINS, {name}.",
+        "TU PROGRESSES, {name}.",
+        "NE T'ARRÊTE PAS, {name}.",
+        "EN CORE, {name}.",
+        "TU APPRENDS, {name}.",
+        "C'EST ÇA, {name}.",
+        "NE RELÂCHE PAS, {name}.",
+        "TU ES SUR LA BONNE VOIE, {name}.",
+        "LE TEMPS RALENTIT, {name}."
+    ],
+    
+    // Quand le joueur se trompe
+    wrong: [
+        "ERREUR, {name} !",
+        "STUPIDE, {name} !",
+        "TU ES NUL, {name} !",
+        "REGARDE CE QUE TU FAIS, {name} !",
+        "LE TEMPS ACCÉLÈRE, {name} !",
+        "TU VAS MOURIR, {name} !",
+        "ENCORE, {name} !",
+        "FAIS ATTENTION, {name} !",
+        "TU ME DÉÇOIS, {name} !",
+        "CONCENTRE-TOI, {name} !"
+    ],
+    
+    // Quand le temps est bas
+    timeLow: [
+        "LE TEMPS FILE, {name}.",
+        "DÉPÊCHE-TOI, {name}.",
+        "TU VAS MOURIR, {name}.",
+        "C'EST LA FIN, {name}.",
+        "REGARDE LE TEMPS, {name}.",
+        "TROP LENT, {name}.",
+        "ACCÉLÈRE, {name}.",
+        "TU N'Y ARRIVERAS PAS, {name}.",
+        "C'EST PRESQUE FINI, {name}.",
+        "DERNIÈRE CHANCE, {name}."
+    ],
+    
+    // Dialogues aléatoires pendant le jeu
+    random: [
+        "JE TE VOIS, {name}.",
+        "TES MAINS TREMBLENT, {name}.",
+        "TU AS PEUR, {name} ?",
+        "POURQUOI TU CONTINUES, {name} ?",
+        "TU SAIS QUE TU VAS MOURIR, {name}.",
+        "ABANDONNE, {name}.",
+        "C'EST INUTILE, {name}.",
+        "TU ES PIÉGÉ, {name}.",
+        "PERSONNE NE VIENDRA, {name}.",
+        "TU ES SEUL, {name}.",
+        "JE SUIS TON SEUL PUBLIC, {name}.",
+        "CRIE SI TU VEUX, {name}.",
+        "PERSONNE N'ENTENDRA, {name}.",
+        "TROP TARD POUR TOI, {name}.",
+        "REGARDE-MOI DANS LES YEUX, {name}.",
+        "NE DÉTOURNE PAS LE REGARD, {name}.",
+        "JE SUIS DANS TA TÊTE, {name}.",
+        "JE CONNAIS TES PEURS, {name}.",
+        "TU NE SORTIRAS PAS, {name}.",
+        "C'EST TON DESTIN, {name}."
+    ],
+    
+    // Dialogues avec la peur de mourir
+    fear: [
+        "TU AS PEUR DE MOURIR, {name} ?",
+        "LA MORT T'ATTEND, {name}.",
+        "TU VAS MOURIR ICI, {name}.",
+        "C'EST TA FIN, {name}.",
+        "DIS ADIEU, {name}.",
+        "PRIE SI TU VEUX, {name}.",
+        "PERSONNE NE TE SAUVERA, {name}.",
+        "ACCEPTE TON SORT, {name}.",
+        "LA MORT EST DOUCE, {name}.",
+        "LAISSE-TOI ALLER, {name}."
+    ],
+    
+    // Dialogues sur la croyance
+    belief: [
+        "TU CROIS EN QUELQUE CHOSE, {name} ?",
+        "PRIE TON DIEU, {name}.",
+        "IL NE T'ENTEND PAS, {name}.",
+        "TU ES ABANDONNÉ, {name}.",
+        "C'EST TON ENFER, {name}.",
+        "PÉCHÉS ET CHÂTIMENTS, {name}.",
+        "TU MÉRITES ÇA, {name}.",
+        "PAS DE SALUT POUR TOI, {name}.",
+        "LE DIABLE T'ATTEND, {name}.",
+        "BRÛLE AVEC MOI, {name}."
+    ],
+    
+    // Dialogues sur la personne aimée
+    loved: [
+        "TU PENSES À {loved}, {name} ?",
+        "{loved} T'OUBLIE, {name}.",
+        "{loved} SERAIT DÉÇU, {name}.",
+        "TU FAIS ÇA POUR {loved}, {name} ?",
+        "{loved} NE TE RECONNAÎTRAIT PAS, {name}.",
+        "ABANDONNE POUR {loved}, {name}.",
+        "{loved} PLEURERA TA MORT, {name}.",
+        "TU MANQUERAS À {loved}, {name}.",
+        "{loved} TE HAIT, {name}.",
+        "TU AS TRAHI {loved}, {name}."
+    ],
+    
+    // Dialogues sur la tristesse
+    sadness: [
+        "TU ES TRISTE, {name} ?",
+        "PLEURE SI TU VEUX, {name}.",
+        "TES LARMES ME NOURRISSENT, {name}.",
+        "TRISTE PETIT {name}.",
+        "JOIE OU TRISTESSE, {name} ?",
+        "SOURIS UNE DERNIÈRE FOIS, {name}.",
+        "TON CHAGRIN M'AMUSE, {name}.",
+        "CRIE TA DOULEUR, {name}.",
+        "TU ES SEUL DANS TA TRISTESSE, {name}.",
+        "PERSONNE NE TE CONSOLERA, {name}."
+    ]
+};
+
+// ============================================================================
+// MOTEUR DE JEU
+// ============================================================================
+
+const GAME = {
     // État du jeu
     level: 1,
-    arena: 1,
-    stress: 0,
-    errors: 0,
+    timeLeft: 60.0,
+    baseTime: 60.0,
+    isActive: false,
     selectedCell: null,
     grid: [],
     solution: [],
-    isActive: false,
+    gameLoopInterval: null,
+    dialogueCounter: 0,
     
     // Profil du joueur
-    playerProfile: {
-        name: "INCONNU",
-        responses: {}
+    player: {
+        name: "",
+        fearsDeath: false,
+        isBeliever: false,
+        lovedOne: "",
+        isSad: false
     },
     
-    // Questions psychologiques (20 questions)
-    psycheQuestions: [
-        { id: "q1", question: "TON NOM COMPLET ?", key: "name", category: "identite" },
-        { id: "q2", question: "QUI PLEURERA LE PLUS À TON ENTERREMENT ?", key: "loved_one", category: "relation" },
-        { id: "q3", question: "TON PLUS GRAND REGRET INAVOUABLE ?", key: "regret", category: "vulnerabilite" },
-        { id: "q4", question: "QUELLE PARTIE DE TON CORPS DÉTESTES-TU ?", key: "hated_part", category: "corps" },
-        { id: "q5", question: "QUI T'A LE PLUS TRAHI DANS TA VIE ?", key: "traitor", category: "relation" },
-        { id: "q6", question: "À QUEL ÂGE AS-TU PERDU TA PURE INNOCENCE ?", key: "corruption_age", category: "vulnerabilite" },
-        { id: "q7", question: "QUELLE EST TA PLUS GRANDE LÂCHETÉ ?", key: "cowardice", category: "vulnerabilite" },
-        { id: "q8", question: "SI TU DEVAIS SACRIFIER UN SENS, CE SERAIT ?", key: "sacrifice_sense", category: "corps" },
-        { id: "q9", question: "QUEL EST TON SECRET LE PLUS SOMBRE ?", key: "dark_secret", category: "vulnerabilite" },
-        { id: "q10", question: "QUI SOUHAITES-TU SECRÈTEMENT VOIR SOUFFRIR ?", key: "wished_pain", category: "agression" },
-        { id: "q11", question: "QUEL RÊVE AS-TU ABANDONNÉ À JAMAIS ?", key: "dead_dream", category: "vulnerabilite" },
-        { id: "q12", question: "DE QUOI AS-TU LE PLUS HONTE ?", key: "shame", category: "vulnerabilite" },
-        { id: "q13", question: "SI TU POUVAIS EFFACER UN SOUVENIR, CE SERAIT ?", key: "erase_memory", category: "vulnerabilite" },
-        { id: "q14", question: "QUELLE EST TA PEUR LA PLUS IRRATIONNELLE ?", key: "irrational_fear", category: "peur" },
-        { id: "q15", question: "QUEL ACTE AS-TU COMMIS QUE PERSONNE NE SAIT ?", key: "hidden_act", category: "vulnerabilite" },
-        { id: "q16", question: "QUI AIMERAIS-TU ÊTRE SI TU N'ÉTAIS PAS TOI ?", key: "wished_identity", category: "identite" },
-        { id: "q17", question: "QUELLE EST LA DERNIÈRE CHOSE QUE TU CACHERAS À DIEU ?", key: "hidden_god", category: "spiritualite" },
-        { id: "q18", question: "SI TU DEVAIS MOURIR MAINTENANT, QUEL SERAIT TON DERNIER REGRET ?", key: "final_regret", category: "vulnerabilite" },
-        { id: "q19", question: "QUEL EST LE MOT QUI TE BLESSE LE PLUS ?", key: "painful_word", category: "vulnerabilite" },
-        { id: "q20", question: "POURQUOI CONTINUES-TU À VIVRE ?", key: "reason_live", category: "identite" }
+    // Questions
+    questions: [
+        { text: "C'EST QUOI TON NOM ?", key: "name" },
+        { text: "TU AS PEUR DE MOURIR ? (OUI/NON)", key: "fearsDeath" },
+        { text: "EST-TU CROYANT ? (OUI/NON)", key: "isBeliever" },
+        { text: "QUI EST LA PERSONNE QUE TU AIMES LE PLUS ?", key: "lovedOne" },
+        { text: "EST-CE QUE TU ES TRISTE ? (OUI/NON)", key: "isSad" }
     ],
-    
-    // Intelligence démoniaque
-    demonMemory: {
-        dominance: "unknown",
-        reactionScores: {
-            vulnerabilite: 0,
-            relation: 0,
-            corps: 0,
-            peur: 0,
-            agression: 0,
-            identite: 0,
-            spiritualite: 0
-        },
-        learnedTriggers: [],
-        lastErrorType: null
-    },
-    
-    // Voix démoniaques
-    demonVoices: {
-        JUGE: { pitch: 0.1, rate: 0.7, color: "#00ff00", personality: "autoritaire" },
-        MOQUEUR: { pitch: 1.8, rate: 1.3, color: "#ffff00", personality: "sadique" },
-        MURMURE: { pitch: 0.5, rate: 0.5, color: "#ffffff", personality: "manipulateur" },
-        COLERIQUE: { pitch: 0.1, rate: 1.5, color: "#ff5500", personality: "violent" }
-    },
     
     // Initialisation
     init() {
-        // Activer l'audio
-        AUDIO.init();
-        
-        // Cacher l'écran de démarrage
-        document.getElementById('start-screen').style.display = 'none';
-        
-        // Commencer le profilage
-        this.startProfiling();
+        // Cacher l'intro après 3 secondes
+        setTimeout(() => {
+            document.getElementById('intro-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('intro-screen').style.display = 'none';
+                this.startQuestions();
+            }, 1000);
+        }, 3000);
     },
     
-    // Profilage psychologique
-    startProfiling() {
-        // Montrer l'écran de questions
-        document.getElementById('psy-screen').style.display = 'flex';
-        
-        // Sélectionner 5 questions aléatoires parmi les 20
-        this.selectedQuestions = [...this.psycheQuestions]
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 5);
-        
+    // Questions au joueur
+    startQuestions() {
+        document.getElementById('question-overlay').style.display = 'flex';
         this.currentQuestionIndex = 0;
-        this.askNextQuestion();
+        this.askQuestion();
+        
+        // Configurer le bouton de soumission
+        document.getElementById('submit-answer').onclick = () => this.submitAnswer();
+        document.getElementById('answer-input').onkeypress = (e) => {
+            if (e.key === 'Enter') this.submitAnswer();
+        };
     },
     
-    askNextQuestion() {
-        if (this.currentQuestionIndex < this.selectedQuestions.length) {
-            const question = this.selectedQuestions[this.currentQuestionIndex];
-            document.getElementById('psy-question').textContent = question.question;
-            document.getElementById('psy-input').value = '';
-            document.getElementById('psy-input').focus();
-        } else {
-            // Profilage terminé
-            this.endProfiling();
-        }
+    askQuestion() {
+        const question = this.questions[this.currentQuestionIndex];
+        document.getElementById('question-text').textContent = question.text;
+        document.getElementById('answer-input').value = '';
+        document.getElementById('answer-input').focus();
     },
     
-    submitPsy() {
-        const input = document.getElementById('psy-input');
+    submitAnswer() {
+        const input = document.getElementById('answer-input');
         const answer = input.value.trim().toUpperCase();
         
         if (!answer) return;
         
-        const currentQuestion = this.selectedQuestions[this.currentQuestionIndex];
-        this.playerProfile.responses[currentQuestion.key] = answer;
+        const question = this.questions[this.currentQuestionIndex];
         
-        // Analyser la réponse pour l'intelligence démoniaque
-        this.analyzeResponse(currentQuestion.key, currentQuestion.category);
+        // Traiter la réponse selon la question
+        switch(question.key) {
+            case 'name':
+                this.player.name = answer;
+                break;
+            case 'fearsDeath':
+                this.player.fearsDeath = (answer === 'OUI' || answer === 'YES');
+                break;
+            case 'isBeliever':
+                this.player.isBeliever = (answer === 'OUI' || answer === 'YES');
+                break;
+            case 'lovedOne':
+                this.player.lovedOne = answer;
+                break;
+            case 'isSad':
+                this.player.isSad = (answer === 'OUI' || answer === 'YES');
+                break;
+        }
         
         // Passer à la question suivante
         this.currentQuestionIndex++;
-        this.askNextQuestion();
-    },
-    
-    analyzeResponse(key, category) {
-        // Mettre à jour les scores de réaction
-        if (this.demonMemory.reactionScores[category] !== undefined) {
-            this.demonMemory.reactionScores[category] += 1;
+        
+        if (this.currentQuestionIndex < this.questions.length) {
+            this.askQuestion();
+        } else {
+            // Toutes les questions sont répondues
+            this.startGame();
         }
-        
-        // Déterminer la dominance
-        let maxScore = 0;
-        let dominantCategory = "unknown";
-        
-        for (const [cat, score] of Object.entries(this.demonMemory.reactionScores)) {
-            if (score > maxScore) {
-                maxScore = score;
-                dominantCategory = cat;
-            }
-        }
-        
-        this.demonMemory.dominance = dominantCategory;
-        this.demonMemory.learnedTriggers.push({ key, category });
-    },
-    
-    endProfiling() {
-        // Stocker le nom du joueur
-        this.playerProfile.name = this.playerProfile.responses.name || "INCONNU";
-        
-        // Cacher l'écran de questions
-        document.getElementById('psy-screen').style.display = 'none';
-        
-        // Afficher l'interface de jeu
-        document.getElementById('ui-layer').style.display = 'flex';
-        document.getElementById('player-name').textContent = this.playerProfile.name;
-        
-        // Démarrer le jeu
-        this.startGame();
     },
     
     // Démarrage du jeu
     startGame() {
-        this.isActive = true;
-        this.updateArena();
-        this.loadLevel();
-        this.gameLoop();
+        document.getElementById('question-overlay').style.display = 'none';
+        document.getElementById('ui-layer').style.display = 'flex';
         
-        // Premier message du démon
-        this.demonSpeak("BIENVENUE DANS MON DOMAINE, " + this.playerProfile.name + ".", "JUGE");
+        // Premier dialogue avec le nom
+        this.speakDemon(this.getDialogue('start'), true);
+        
+        // Démarrer le niveau
+        this.startLevel();
     },
     
-    // Mise à jour de l'arène
-    updateArena() {
-        if (this.level <= 25) {
-            this.arena = 1;
-            document.body.className = "arena-1";
-            document.getElementById('arena-display').textContent = "LE TRIBUNAL";
-        } else if (this.level <= 50) {
-            this.arena = 2;
-            document.body.className = "arena-2";
-            document.getElementById('arena-display').textContent = "LA CHAIR";
-        } else if (this.level <= 75) {
-            this.arena = 3;
-            document.body.className = "arena-3";
-            document.getElementById('arena-display').textContent = "LE VIDE";
-        } else {
-            this.arena = 4;
-            document.body.className = "arena-4";
-            document.getElementById('arena-display').textContent = "LE PANDÉMONIUM";
-            
-            // Afficher les murmures en arène 4
-            document.querySelectorAll('.demon-whisper').forEach(el => {
-                el.style.opacity = "0.7";
-            });
-            
-            // Afficher le bouton de miséricorde à partir du niveau 90
-            if (this.level >= 90) {
-                document.getElementById('mercy-btn').style.display = 'block';
-            }
-        }
-    },
-    
-    // Chargement d'un niveau
-    loadLevel() {
-        // Mettre à jour l'affichage du niveau
-        document.getElementById('lvl-display').textContent = this.level;
+    // Démarrage d'un niveau
+    startLevel() {
+        // Réinitialiser le temps
+        this.timeLeft = this.baseTime - (this.level * 0.5);
+        if (this.timeLeft < 30) this.timeLeft = 30;
         
-        // Calculer la difficulté
-        let holes = 20 + Math.floor(this.level * 0.4);
-        if (holes > 60) holes = 60;
-        if (this.level > 90) holes = 5; // Facile à la fin pour forcer la décision
+        // Mettre à jour l'affichage
+        document.getElementById('level-display').textContent = this.level;
+        document.getElementById('timer').textContent = this.timeLeft.toFixed(1);
+        document.getElementById('time-bar').style.width = '100%';
         
         // Générer la grille
-        this.generateSudoku(holes);
+        this.generateSudoku();
         this.renderGrid();
         
-        // Réinitialiser la sélection
-        this.selectedCell = null;
+        // Démarrer la boucle de jeu
+        this.isActive = true;
+        this.startGameLoop();
         
-        // Message d'introduction du niveau
-        this.levelIntroduction();
+        // Dialogue de début
+        setTimeout(() => {
+            this.speakDemon(this.getDialogue('start'));
+        }, 1000);
     },
     
-    // Introduction du niveau
-    levelIntroduction() {
-        let message = "";
-        const voice = this.getDominantVoice();
+    // Boucle de jeu principale
+    startGameLoop() {
+        if (this.gameLoopInterval) clearInterval(this.gameLoopInterval);
         
-        if (this.arena === 1) {
-            message = `NIVEAU ${this.level}. TOUT COMMENCE MAINTENANT.`;
-        } else if (this.arena === 2) {
-            message = `JE SENS TA PEUR GRANDIR. NIVEAU ${this.level}.`;
-        } else if (this.arena === 3) {
-            message = `LE VIDE T'APPARTIENT. NIVEAU ${this.level}.`;
-        } else {
-            message = `LE PANDÉMONIUM T'ATTEND. DERNIÈRE ÉTAPE.`;
-        }
-        
-        this.demonSpeak(message, voice);
-    },
-    
-    // Boucle de jeu
-    gameLoop() {
-        if (!this.isActive) return;
-        
-        // Augmenter le stress progressivement
-        this.stress += (0.02 + (this.level * 0.001));
-        if (this.stress > 100) this.stress = 100;
-        
-        // Mettre à jour la barre de stress
-        document.getElementById('stress-bar').style.width = this.stress + "%";
-        
-        // Effets visuels selon le stress
-        if (this.stress > 70) {
-            document.getElementById('blood-effect').style.opacity = "0.3";
-        } else {
-            document.getElementById('blood-effect').style.opacity = "0";
-        }
-        
-        // Game over si stress max
-        if (this.stress >= 100) {
-            this.gameOver();
-            return;
-        }
-        
-        // En arène 4, les murmures parlent aléatoirement
-        if (this.arena === 4 && Math.random() < 0.02) {
-            this.triggerWhisper();
-        }
-        
-        // Continuer la boucle
-        requestAnimationFrame(() => this.gameLoop());
+        this.gameLoopInterval = setInterval(() => {
+            if (!this.isActive) return;
+            
+            // Réduire le temps
+            this.timeLeft -= 0.1;
+            
+            // Mettre à jour l'affichage
+            document.getElementById('timer').textContent = this.timeLeft.toFixed(1);
+            document.getElementById('time-bar').style.width = (this.timeLeft / this.baseTime * 100) + '%';
+            
+            // Dialogues quand le temps est bas
+            if (this.timeLeft < 10 && Math.random() < 0.1) {
+                this.speakDemon(this.getDialogue('timeLow'));
+            }
+            
+            // Dialogues aléatoires
+            if (Math.random() < 0.05) {
+                this.speakDemon(this.getDialogue('random'));
+            }
+            
+            // Game over si temps écoulé
+            if (this.timeLeft <= 0) {
+                this.gameOver("LE TEMPS EST ÉCOULÉ");
+            }
+        }, 100);
     },
     
     // Génération Sudoku
-    generateSudoku(holes) {
+    generateSudoku() {
+        // Générer une solution
         this.solution = Array(81).fill(0);
         this.fillGrid(this.solution);
         
+        // Créer la grille avec des trous
         this.grid = [...this.solution];
+        const holes = Math.min(60, 20 + Math.floor(this.level * 0.4));
+        
         for (let i = 0; i < holes; i++) {
             const randomIndex = Math.floor(Math.random() * 81);
             this.grid[randomIndex] = 0;
@@ -847,495 +838,193 @@ const SOULTRAP = {
             cellElement.textContent = '';
             cellElement.classList.remove('wrong');
             this.grid[this.selectedCell] = 0;
-            AUDIO.playTone('clear');
             return;
         }
         
         // Vérifier si la réponse est correcte
         if (value === this.solution[this.selectedCell]) {
-            // Bonne réponse
+            // BONNE RÉPONSE
             cellElement.textContent = value;
-            cellElement.classList.add('fixed');
+            cellElement.classList.add('fixed', 'correct');
             cellElement.classList.remove('selected', 'wrong');
             this.grid[this.selectedCell] = value;
             this.selectedCell = null;
             
-            AUDIO.playTone('correct');
+            // Ajouter du temps
+            this.timeLeft += 2.0;
+            if (this.timeLeft > this.baseTime) this.timeLeft = this.baseTime;
             
-            // Réaction du démon à une bonne réponse
-            this.onCorrectAnswer();
+            // Dialogue
+            this.speakDemon(this.getDialogue('correct'));
             
             // Vérifier si la grille est complète
             if (!this.grid.includes(0)) {
                 this.levelComplete();
             }
+            
+            // Animation
+            setTimeout(() => {
+                cellElement.classList.remove('correct');
+            }, 300);
+            
         } else {
-            // Mauvaise réponse
-            this.errors++;
-            this.stress += 8;
+            // MAUVAISE RÉPONSE
+            this.timeLeft -= 5.0;
             
             cellElement.textContent = value;
             cellElement.classList.add('wrong');
             
-            AUDIO.playTone('error');
+            // Dialogue
+            this.speakDemon(this.getDialogue('wrong'));
             
-            // Réaction du démon à une erreur
-            this.onWrongAnswer();
+            // Animation
+            setTimeout(() => {
+                cellElement.classList.remove('wrong');
+                cellElement.textContent = '';
+            }, 500);
         }
     },
     
-    // Quand une réponse est correcte
-    onCorrectAnswer() {
-        let message = "";
-        const voice = this.getDominantVoice();
+    // Dialogue du démon
+    speakDemon(dialogueKey, force = false) {
+        this.dialogueCounter++;
         
-        if (this.arena === 1) {
-            message = "BIEN. MAIS CE N'EST QUE LE DÉBUT.";
-        } else if (this.arena === 2) {
-            message = "TU RÉSISTES... INTÉRESSANT.";
-        } else if (this.arena === 3) {
-            message = "LE VIDE SE REMPLIT DE TES RÉPONSES...";
-        } else {
-            message = "CHAQUE BONNE RÉPONSE ME BLESSE... ARRÊTE...";
-            // En arène 4, les bonnes réponses blessent le démon
-            AUDIO.playTone('demon_hurt');
+        // Changer de catégorie tous les 3-4 dialogues
+        let category = dialogueKey;
+        if (!force && this.dialogueCounter % 4 === 0) {
+            const categories = ['fear', 'belief', 'loved', 'sadness', 'random'];
+            category = categories[Math.floor(Math.random() * categories.length)];
         }
         
-        this.demonSpeak(message, voice);
-    },
-    
-    // Quand une réponse est erronée
-    onWrongAnswer() {
-        this.demonMemory.lastErrorType = this.demonMemory.dominance;
+        // Obtenir un dialogue aléatoire dans la catégorie
+        const dialogues = DEMON_DIALOGUES[category];
+        let dialogue = dialogues[Math.floor(Math.random() * dialogues.length)];
         
-        // Générer une insulte adaptative
-        const insult = this.generateAdaptiveInsult();
-        const voice = this.getAppropriateVoiceForError();
+        // Remplacer les variables
+        dialogue = dialogue.replace(/{name}/g, this.player.name);
+        dialogue = dialogue.replace(/{loved}/g, this.player.lovedOne);
         
-        this.demonSpeak(insult, voice);
-        
-        // Mettre à jour l'intelligence
-        if (this.demonMemory.dominance !== "unknown") {
-            this.demonMemory.reactionScores[this.demonMemory.dominance] += 2;
-        }
-        
-        // En arène 4, les autres démons commentent
-        if (this.arena === 4) {
-            this.triggerMultipleDemons();
-        }
-    },
-    
-    // Génération d'insultes adaptatives
-    generateAdaptiveInsult() {
-        const responses = this.playerProfile.responses;
-        const dominance = this.demonMemory.dominance;
-        
-        let insultPool = [
-            "PATHÉTIQUE.",
-            "TON ESPRIT EST FAIBLE.",
-            "TU N'ES RIEN.",
-            "REGARDE TES MAINS TREMBLER.",
-            "MÊME UN ENFANT FERAIT MIEUX."
-        ];
-        
-        // Insultes personnalisées selon la dominance
-        if (dominance === "vulnerabilite" && responses.regret) {
-            insultPool.push(`TON REGRET "${responses.regret}" TE REND AUSSI FAIBLE QUE TES RÉPONSES.`);
-        }
-        
-        if (dominance === "relation" && responses.loved_one) {
-            insultPool.push(`${responses.loved_one} SERAIT DÉÇU DE TOI.`);
-        }
-        
-        if (dominance === "corps" && responses.hated_part) {
-            insultPool.push(`TON ${responses.hated_part} EST AUSSI INUTILE QUE TON ESPRIT.`);
-        }
-        
-        if (dominance === "peur" && responses.irrational_fear) {
-            insultPool.push(`TA PEUR DE "${responses.irrational_fear}" EST TA SEULE VÉRITÉ.`);
-        }
-        
-        if (dominance === "identite" && responses.name) {
-            insultPool.push(`${responses.name}... QUEL NOM POUR UN ÉCHEC.`);
-        }
-        
-        // Sélectionner une insulte au hasard
-        return insultPool[Math.floor(Math.random() * insultPool.length)];
-    },
-    
-    // Obtenir la voix dominante
-    getDominantVoice() {
-        const scores = this.demonMemory.reactionScores;
-        
-        if (this.arena === 1) return "JUGE";
-        if (this.arena === 2) return "MOQUEUR";
-        if (this.arena === 3) return "COLERIQUE";
-        
-        // En arène 4, la voix dépend de la dominance
-        if (scores.vulnerabilite > scores.agression && scores.vulnerabilite > scores.relation) {
-            return "MURMURE";
-        } else if (scores.agression > scores.vulnerabilite) {
-            return "COLERIQUE";
-        } else {
-            return Math.random() > 0.5 ? "MOQUEUR" : "JUGE";
-        }
-    },
-    
-    // Obtenir la voix appropriée pour une erreur
-    getAppropriateVoiceForError() {
-        if (this.arena === 1) return "JUGE";
-        if (this.arena === 2) return "MOQUEUR";
-        if (this.arena === 3) return "COLERIQUE";
-        
-        // En arène 4, varier selon le niveau de stress
-        if (this.stress > 80) return "COLERIQUE";
-        if (this.stress > 60) return "MOQUEUR";
-        if (this.stress > 40) return "JUGE";
-        return "MURMURE";
-    },
-    
-    // Parole démoniaque
-    demonSpeak(text, voiceType = "JUGE") {
-        document.getElementById('demon-box').textContent = text;
+        // Afficher le dialogue
+        document.getElementById('demon-box').textContent = dialogue;
         
         // Synthèse vocale
-        AUDIO.speak(text, voiceType);
-        
-        // En arène 4, colorer le texte selon la voix
-        if (this.arena === 4) {
-            const voice = this.demonVoices[voiceType];
-            document.getElementById('demon-box').style.borderColor = voice.color;
-            document.getElementById('demon-box').style.textShadow = `0 0 10px ${voice.color}`;
-        }
+        this.speak(dialogue);
     },
     
-    // Déclencher un murmure (Arène 4)
-    triggerWhisper() {
-        const whispers = document.querySelectorAll('.demon-whisper');
-        const randomWhisper = whispers[Math.floor(Math.random() * whispers.length)];
-        
-        const whisperTexts = [
-            "Il faiblit...",
-            "Je sens son âme se déchirer...",
-            "Encore une erreur et il est à nous...",
-            "Sa peur est délicieuse...",
-            "Regarde-le trembler..."
-        ];
-        
-        const personalizedTexts = [
-            `${this.playerProfile.name}... quel nom pour un perdant...`,
-            `Son regret "${this.playerProfile.responses.regret || 'secret'}" le ronge...`,
-            `Même ${this.playerProfile.responses.loved_one || 'ses proches'} l'abandonnerait...`
-        ];
-        
-        let textPool = [...whisperTexts];
-        if (Math.random() > 0.7 && Object.keys(this.playerProfile.responses).length > 0) {
-            textPool = [...textPool, ...personalizedTexts];
-        }
-        
-        randomWhisper.textContent = textPool[Math.floor(Math.random() * textPool.length)];
-        randomWhisper.style.opacity = "1";
-        
-        // Faire disparaître après 3 secondes
-        setTimeout(() => {
-            randomWhisper.style.opacity = "0.7";
-        }, 3000);
+    getDialogue(category) {
+        return category;
     },
     
-    // Déclencher plusieurs démons (Arène 4)
-    triggerMultipleDemons() {
-        if (Math.random() < 0.3) {
-            setTimeout(() => {
-                this.triggerWhisper();
-            }, 500);
-            
-            setTimeout(() => {
-                this.triggerWhisper();
-            }, 1500);
-        }
+    // Synthèse vocale
+    speak(text) {
+        if (!window.speechSynthesis) return;
+        
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'fr-FR';
+        utterance.rate = 0.9;
+        utterance.pitch = 0.7;
+        utterance.volume = 1;
+        
+        window.speechSynthesis.speak(utterance);
     },
     
     // Niveau terminé
     levelComplete() {
         this.isActive = false;
+        clearInterval(this.gameLoopInterval);
         
         setTimeout(() => {
             this.level++;
             
             if (this.level > 100) {
-                this.trueEnding();
+                this.gameOver("VOUS AVEZ GAGNÉ", true);
                 return;
             }
             
-            // Réduire un peu le stress
-            this.stress = Math.max(0, this.stress - 10);
+            // Dialogue de félicitations
+            this.speakDemon(this.getDialogue('correct'));
             
-            // Mettre à jour l'arène si nécessaire
-            this.updateArena();
-            
-            // Charger le niveau suivant
-            this.loadLevel();
-            
-            // Réactiver le jeu
-            this.isActive = true;
-            this.gameLoop();
-        }, 2000);
-    },
-    
-    // Miséricorde
-    mercy() {
-        this.isActive = false;
-        
-        let message = "";
-        if (this.level >= 90) {
-            message = `MERCI ${this.playerProfile.name}... JE NE T'OUBLIERAI JAMAIS...`;
-        } else {
-            message = "TU ES PLUS FAIBLE QUE JE NE LE PENSAIS... À BIENTÔT...";
-        }
-        
-        this.demonSpeak(message, "MURMURE");
-        AUDIO.playTone('mercy');
-        
-        setTimeout(() => {
-            alert("FIN PACIFISTE\n\nVous avez épargné le démon.\nIl vivra éternellement dans l'ombre de votre âme.");
-            location.reload();
-        }, 3000);
-    },
-    
-    // Vraie fin (niveau 100)
-    trueEnding() {
-        this.demonSpeak("NON... JE... DISPARAIS...", "MURMURE");
-        AUDIO.playTone('demon_death');
-        
-        // Effet visuel
-        document.body.style.background = "#ffffff";
-        document.body.style.color = "#000000";
-        document.body.style.transition = "all 5s";
-        
-        setTimeout(() => {
-            document.body.innerHTML = `
-                <div style="text-align: center; padding: 20px;">
-                    <h1 style="font-size: 3rem; margin-bottom: 30px;">LE DÉMON EST MORT</h1>
-                    <p style="font-size: 1.5rem; margin-bottom: 20px;">Vous avez terminé les 100 niveaux.</p>
-                    <p style="font-size: 1.5rem; margin-bottom: 20px;">Votre âme est libre.</p>
-                    <p style="font-size: 1.2rem; margin-top: 40px; opacity: 0.7;">Mais à quel prix ?</p>
-                </div>
-            `;
-            
+            // Nouveau niveau
             setTimeout(() => {
-                location.reload();
-            }, 10000);
-        }, 3000);
+                this.startLevel();
+            }, 2000);
+        }, 1000);
     },
     
     // Game over
-    gameOver() {
+    gameOver(reason, isWin = false) {
         this.isActive = false;
+        clearInterval(this.gameLoopInterval);
         
-        const finalInsult = this.generateAdaptiveInsult();
-        this.demonSpeak(`${finalInsult} TON ÂME M'APPARTIENT MAINTENANT.`, "COLERIQUE");
+        // Message de mort
+        let deathMessage = "";
+        let subtitle = "";
         
-        AUDIO.playTone('game_over');
-        
-        setTimeout(() => {
-            alert("GAME OVER\n\nLe démon a capturé votre âme.\nVotre stress a atteint son maximum.");
-            location.reload();
-        }, 3000);
-    }
-};
-
-// ============================================================================
-// MOTEUR AUDIO
-// ============================================================================
-
-const AUDIO = {
-    context: null,
-    isInitialized: false,
-    
-    init() {
-        // Créer le contexte audio
-        this.context = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Reprendre le contexte si suspendu (pour iOS)
-        if (this.context.state === 'suspended') {
-            const resumeAudio = () => {
-                this.context.resume();
-                document.removeEventListener('touchstart', resumeAudio);
-                document.removeEventListener('click', resumeAudio);
-            };
+        if (isWin) {
+            deathMessage = "LIBÉRATION";
+            subtitle = "Vous avez vaincu le démon";
+        } else {
+            deathMessage = "MORT";
+            subtitle = reason;
             
-            document.addEventListener('touchstart', resumeAudio, { once: true });
-            document.addEventListener('click', resumeAudio, { once: true });
+            // Messages selon les réponses du joueur
+            if (this.player.fearsDeath) {
+                subtitle = "Votre peur s'est réalisée";
+            }
+            if (this.player.isBeliever) {
+                subtitle = "Vos prières n'ont pas été entendues";
+            }
+            if (this.player.isSad) {
+                subtitle = "Votre tristesse vous a consumé";
+            }
         }
         
-        this.isInitialized = true;
-    },
-    
-    speak(text, voiceType = "JUGE") {
-        if (!this.isInitialized) return;
+        // Afficher l'écran de mort
+        document.getElementById('death-message').textContent = deathMessage;
+        document.getElementById('death-subtitle').textContent = subtitle;
+        document.getElementById('death-screen').style.display = 'flex';
         
-        // Annuler toute parole en cours
-        window.speechSynthesis.cancel();
+        // Dernier message du démon
+        const finalWords = [
+            `AU REVOIR, ${this.player.name}.`,
+            `C'ÉTAIT INÉVITABLE, ${this.player.name}.`,
+            `JE T'ATTENDRAI, ${this.player.name}.`,
+            `TU ES À MOI, ${this.player.name}.`,
+            `FIN DU JEU, ${this.player.name}.`
+        ];
         
-        // Paramètres de voix selon le type
-        const voices = {
-            JUGE: { pitch: 0.1, rate: 0.7, lang: 'fr-FR' },
-            MOQUEUR: { pitch: 1.8, rate: 1.3, lang: 'fr-FR' },
-            MURMURE: { pitch: 0.5, rate: 0.5, lang: 'fr-FR' },
-            COLERIQUE: { pitch: 0.1, rate: 1.5, lang: 'fr-FR' }
-        };
+        const finalMessage = finalWords[Math.floor(Math.random() * finalWords.length)];
+        this.speak(finalMessage);
         
-        const voice = voices[voiceType] || voices.JUGE;
-        
-        // Créer l'énoncé
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.pitch = voice.pitch;
-        utterance.rate = voice.rate;
-        utterance.lang = voice.lang;
-        utterance.volume = 0.8;
-        
-        // Parler
-        window.speechSynthesis.speak(utterance);
-        
-        // Son de fond pour la voix
-        this.playVoiceEffect(voiceType);
-    },
-    
-    playVoiceEffect(voiceType) {
-        if (!this.context) return;
-        
-        const oscillator = this.context.createOscillator();
-        const gainNode = this.context.createGain();
-        
-        // Configurer selon le type de voix
-        switch(voiceType) {
-            case 'JUGE':
-                oscillator.frequency.setValueAtTime(80, this.context.currentTime);
-                oscillator.type = 'sine';
-                break;
-            case 'MOQUEUR':
-                oscillator.frequency.setValueAtTime(300, this.context.currentTime);
-                oscillator.type = 'square';
-                break;
-            case 'MURMURE':
-                oscillator.frequency.setValueAtTime(150, this.context.currentTime);
-                oscillator.type = 'sine';
-                break;
-            case 'COLERIQUE':
-                oscillator.frequency.setValueAtTime(100, this.context.currentTime);
-                oscillator.type = 'sawtooth';
-                break;
-        }
-        
-        // Configuration du gain
-        gainNode.gain.setValueAtTime(0.03, this.context.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
-        
-        // Connexion
-        oscillator.connect(gainNode);
-        gainNode.connect(this.context.destination);
-        
-        // Jouer
-        oscillator.start();
-        oscillator.stop(this.context.currentTime + 0.5);
-    },
-    
-    playTone(type) {
-        if (!this.context) return;
-        
-        const oscillator = this.context.createOscillator();
-        const gainNode = this.context.createGain();
-        
-        switch(type) {
-            case 'correct':
-                oscillator.frequency.setValueAtTime(800, this.context.currentTime);
-                oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.2);
-                break;
-                
-            case 'error':
-                oscillator.frequency.setValueAtTime(200, this.context.currentTime);
-                oscillator.type = 'sawtooth';
-                gainNode.gain.setValueAtTime(0.2, this.context.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.3);
-                break;
-                
-            case 'clear':
-                oscillator.frequency.setValueAtTime(400, this.context.currentTime);
-                oscillator.type = 'triangle';
-                gainNode.gain.setValueAtTime(0.05, this.context.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.1);
-                break;
-                
-            case 'demon_hurt':
-                oscillator.frequency.setValueAtTime(300, this.context.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(100, this.context.currentTime + 0.5);
-                oscillator.type = 'sawtooth';
-                gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.5);
-                break;
-                
-            case 'demon_death':
-                oscillator.frequency.setValueAtTime(150, this.context.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(50, this.context.currentTime + 1);
-                oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.15, this.context.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 1);
-                break;
-                
-            case 'game_over':
-                oscillator.frequency.setValueAtTime(100, this.context.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(50, this.context.currentTime + 0.5);
-                oscillator.type = 'sawtooth';
-                gainNode.gain.setValueAtTime(0.2, this.context.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.5);
-                break;
-                
-            case 'mercy':
-                oscillator.frequency.setValueAtTime(600, this.context.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(200, this.context.currentTime + 0.3);
-                oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + 0.3);
-                break;
-        }
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(this.context.destination);
-        
-        oscillator.start();
-        
-        const duration = type === 'demon_death' ? 1 : 
-                        type === 'game_over' ? 0.5 : 0.3;
-                        
-        oscillator.stop(this.context.currentTime + duration);
+        // Redémarrer après 5 secondes
+        setTimeout(() => {
+            location.reload();
+        }, 5000);
     }
 };
 
 // ============================================================================
-// INITIALISATION
+// DÉMARRAGE
 // ============================================================================
 
-// Pour iOS : Éviter les problèmes de scroll
-document.addEventListener('touchmove', function(e) {
-    if (e.target.tagName !== 'INPUT') {
-        e.preventDefault();
+// Démarrer le jeu
+window.onload = () => {
+    GAME.init();
+};
+
+// Gestion du clavier physique (pour ordinateur)
+document.addEventListener('keydown', (e) => {
+    if (!GAME.isActive || !GAME.selectedCell) return;
+    
+    const key = e.key;
+    
+    if (key >= '1' && key <= '9') {
+        GAME.input(parseInt(key));
+    } else if (key === 'Backspace' || key === 'Delete') {
+        GAME.input('X');
     }
-}, { passive: false });
-
-// Démarrer le jeu au chargement
-window.addEventListener('DOMContentLoaded', () => {
-    // Focus sur le bouton de démarrage
-    document.querySelector('#start-screen button').focus();
-});
-
-// Pour Android : Gestion du clavier virtuel
-window.addEventListener('resize', () => {
-    // Recentrer après l'apparition du clavier
-    setTimeout(() => {
-        window.scrollTo(0, 0);
-    }, 100);
 });
 </script>
 </body>
