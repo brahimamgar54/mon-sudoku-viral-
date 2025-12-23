@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SOUL TRAP: NIGHTMARE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Creepster&family=VT323&display=swap');
+
+        :root {
+            --primary: #22ff22;
+            --danger: #ff0000;
+            --bg: #050505;
+        }
+
+        * { box-sizing: border-box; user-select: none; touch-action: manipulation; margin: 0; padding: 0; cursor: crosshair; }
+        
+        body {
+            background: var(--bg);
+            color: var(--primary);
+            font-family: 'VT323', monospace;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- EFFETS CRT & AMBIANCE --- */
+        #crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        #vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.9) 100%);
+            pointer-events: none;
+            z-index: 998;
+        }
+
+        #noise {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.05;
+            pointer-events: none;
+            z-index: 997;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        @keyframes screenShake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake { animation: screenShake 0.5s; }
+        .red-flash { animation: redPulse 0.2s; }
+        
+        @keyframes redPulse {
+            0% { box-shadow: inset 0 0 0 red; }
+            50% { box-shadow: inset 0 0 100px red; }
+            100% { box-shadow: inset 0 0 0 red; }
+        }
+
+        /* --- UI --- */
+        #game-container {
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            z-index: 10;
+            display: none; /* Caché au début */
+        }
+
+        #demon-visual {
+            font-family: 'Creepster', cursive;
+            text-align: center;
+            font-size: 2rem;
+            color: #aa0000;
+            text-shadow: 2px 2px 0px #000;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            filter: blur(0.5px);
+        }
+
+        .timer-bar-bg {
+            width: 100%;
+            height: 10px;
+            background: #333;
+            margin-bottom: 15px;
+            border: 1px solid #555;
+        }
+
+        #timer-bar {
+            width: 100%;
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.1s linear, background 0.3s;
+        }
+
+        /* GRILLE */
+        #grid-wrapper {
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            aspect-ratio: 1;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 1px;
+            background: #003300;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        .cell {
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #444;
+            transition: background 0.2s;
+        }
+
+        .cell.fixed { color: var(--primary); text-shadow: 0 0 5px var(--primary); }
+        .cell.selected { background: #1a331a; color: #fff; }
+        .cell.wrong { background: #500; color: #f00; }
+        .cell.correct { background: #050; color: #fff; }
+
+        /* KEYPAD */
+        #keypad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-top: 15px;
+        }
+
+        .key {
+            background: #111;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            active: scale(0.95);
+        }
+
+        .key:active { background: var(--primary); color: #000; }
+
+        /* INTRO / QUESTIONS */
+        #overlay-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .big-btn {
+            margin-top: 30px;
+            background: transparent;
+            color: var(--danger);
+            border: 2px solid var(--danger);
+            padding: 15px 30px;
+            font-family: 'Creepster', cursive;
+            font-size: 2rem;
+            cursor: pointer;
+            animation: pulseBtn 1s infinite;
+        }
+
+        @keyframes pulseBtn { 0% {transform: scale(1);} 50% {transform: scale(1.05); text-shadow: 0 0 10px red;} 100% {transform: scale(1);} }
+
+        input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--primary);
+            color: white;
+            font-family: inherit;
+            font-size: 2rem;
+            text-align: center;
+            margin-top: 20px;
+            outline: none;
+            text-transform: uppercase;
+        }
+        
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+    <div id="crt-overlay"></div>
+    <div id="vignette"></div>
+    <div id="noise"></div>
+
+    <div id="overlay-screen">
+        <h1 style="font-family: 'Creepster'; font-size: 4rem; color: var(--danger); text-shadow: 0 0 20px red;">SOUL TRAP</h1>
+        <div id="intro-text" style="font-size: 1.2rem; margin-top: 20px; color: #888;">NIGHTMARE EDITION</div>
+        
+        <div id="start-btn-container">
+            <button class="big-btn" onclick="CORE.initAudio()">ACCEPTER LE PACTE</button>
+            <p style="margin-top: 10px; font-size: 0.8rem;">⚠️ SON OBLIGATOIRE - METS DES ÉCOUTEURS</p>
+        </div>
+
+        <div id="questions-container" class="hidden">
+            <div id="q-text" style="font-size: 1.5rem; margin-bottom: 20px;"></div>
+            <input type="text" id="q-input" autocomplete="off">
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="demon-visual">JE TE REGARDE...</div>
+        
+        <div class="timer-bar-bg">
+            <div id="timer-bar"></div>
+        </div>
+
+        <div id="grid-wrapper">
+            <div id="grid"></div>
+        </div>
+
+        <div id="keypad">
+            <div class="key" onclick="GAME.input(1)">1</div>
+            <div class="key" onclick="GAME.input(2)">2</div>
+            <div class="key" onclick="GAME.input(3)">3</div>
+            <div class="key" onclick="GAME.input(4)">4</div>
+            <div class="key" onclick="GAME.input(5)">5</div>
+            <div class="key" onclick="GAME.input(6)">6</div>
+            <div class="key" onclick="GAME.input(7)">7</div>
+            <div class="key" onclick="GAME.input(8)">8</div>
+            <div class="key" onclick="GAME.input(9)">9</div>
+            <div class="key" onclick="GAME.input('X')" style="color:red; border-color:red;">X</div>
+        </div>
+    </div>
+
+<script>
+// ============================================================================
+// MOTEUR AUDIO (PROCÉDURAL - PAS DE FICHIERS)
+// ============================================================================
+const AUDIO = {
+    ctx: null,
+    droneOsc: null,
+    droneGain: null,
+    isMuted: false,
+
+    init() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            this.startDrone();
+        } catch (e) {
+            console.error("Web Audio API not supported");
+        }
+    },
+
+    // Son d'ambiance lourd et grave (Basse fréquence)
+    startDrone() {
+        if (!this.ctx) return;
+        this.droneOsc = this.ctx.createOscillator();
+        this.droneGain = this.ctx.createGain();
+        
+        // Deux oscillateurs pour créer un battement dissonant
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        
+        osc1.type = 'sawtooth';
+        osc1.frequency.value = 50; // Basse
+        
+        osc2.type = 'sine';
+        osc2.frequency.value = 52; // Légèrement décalé pour créer le "wobble"
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 120;
+
+        this.droneGain.gain.value = 0.3; // Volume ambiance
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(this.droneGain);
+        this.droneGain.connect(this.ctx.destination);
+
+        osc1.start();
+        osc2.start();
+    },
+
+    // Son d'erreur (Strident)
+    playError() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.3); // Glissando vers le bas
+        
+        gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+    },
+
+    // Son de succès (Étrange mais positif)
+    playClick() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
+    },
+
+    // Battement de coeur (pour le stress)
+    playHeartbeat() {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc.frequency.setValueAtTime(60, this.ctx.currentTime);
+        gain.gain.setValueAtTime(1, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
+    }
+};
+
+// ============================================================================
+// IA DU DÉMON
+// ============================================================================
+const DEMON = {
+    speaking: false,
+    lastSpeakTime: 0,
+    
+    // Voix synthétique modifiée
+    speak(text, priority = false) {
+        if (this.speaking && !priority) return;
+        
+        // Annule la parole précédente
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'fr-FR';
+        utterance.pitch = 0.5; // Voix très grave
+        utterance.rate = 0.8;  // Voix lente
+        utterance.volume = 1.0;
+        
+        this.speaking = true;
+        
+        // Effet visuel
+        const box = document.getElementById('demon-visual');
+        box.textContent = text;
+        box.style.color = '#ff0000';
+        box.style.textShadow = '0 0 10px red';
+
+        utterance.onend = () => {
+            this.speaking = false;
+            this.lastSpeakTime = Date.now();
+            box.style.color = '#aa0000';
+            box.style.textShadow = '2px 2px 0px #000';
+        };
+
+        window.speechSynthesis.speak(utterance);
+    },
+
+    // Logique adaptative
+    observe(gameState) {
+        const now = Date.now();
+        if (this.speaking || (now - this.lastSpeakTime < 4000)) return; // Pause forcée
+
+        // 1. Si le joueur fait trop d'erreurs d'affilée
+        if (gameState.consecutiveErrors >= 2) {
+            const phrases = [
+                "Tes mains tremblent ?", 
+                "Tu paniques...", 
+                "Pathétique.", 
+                "Je sens ta peur.",
+                "Abandonne."
+            ];
+            this.speak(phrases[Math.floor(Math.random() * phrases.length)], true);
+            gameState.consecutiveErrors = 0;
+            return;
+        }
+
+        // 2. Si le temps est critique (< 15%)
+        if (gameState.timeLeft / gameState.maxTime < 0.15) {
+            const phrases = [
+                "C'est la fin.", 
+                "Tic... Tac...", 
+                "Meurs.", 
+                "Trop tard.",
+                `Adieu ${PLAYER.name}.`
+            ];
+            this.speak(phrases[Math.floor(Math.random() * phrases.length)], true);
+            return;
+        }
+
+        // 3. Si le joueur est inactif (hésitation)
+        if (now - gameState.lastActionTime > 6000) {
+            const phrases = [
+                "Tu t'endors ?",
+                "Joue.",
+                "Le temps coule...",
+                "Je suis patient, pas toi."
+            ];
+            this.speak(phrases[Math.floor(Math.random() * phrases.length)]);
+            return;
+        }
+    }
+};
+
+// ============================================================================
+// COEUR DU JEU
+// ============================================================================
+const PLAYER = { name: "", loved: "", fears: "", believer: false };
+
+const CORE = {
+    qIndex: 0,
+    questions: [
+        { t: "TON NOM... DONNE-LE MOI.", k: "name" },
+        { t: "QUI AIMES-TU LE PLUS ?", k: "loved" },
+        { t: "TU AS PEUR DU NOIR ? (OUI/NON)", k: "fears" },
+        { t: "CROIS-TU EN DIEU ? (OUI/NON)", k: "believer" }
+    ],
+
+    initAudio() {
+        AUDIO.init();
+        document.getElementById('start-btn-container').classList.add('hidden');
+        document.getElementById('questions-container').classList.remove('hidden');
+        this.askNext();
+    },
+
+    askNext() {
+        if (this.qIndex >= this.questions.length) {
+            this.startGame();
+            return;
+        }
+        const q = this.questions[this.qIndex];
+        document.getElementById('q-text').textContent = q.t;
+        const input = document.getElementById('q-input');
+        input.value = "";
+        input.focus();
+        
+        // Gestion validation touche Entrée
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter' && input.value.trim() !== "") {
+                PLAYER[q.k] = input.value.toUpperCase();
+                this.qIndex++;
+                this.askNext();
+            }
+        };
+    },
+
+    startGame() {
+        document.getElementById('overlay-screen').style.display = 'none';
+        document.getElementById('game-container').style.display = 'flex';
+        GAME.start();
+    }
+};
+
+const GAME = {
+    active: false,
+    level: 1,
+    maxTime: 60,
+    timeLeft: 60,
+    grid: [],
+    solution: [],
+    selectedIdx: null,
+    consecutiveErrors: 0,
+    lastActionTime: Date.now(),
+    timerInterval: null,
+    heartbeatInterval: null,
+
+    start() {
+        this.active = true;
+        this.maxTime = Math.max(15, 60 - (this.level * 2)); // De plus en plus court
+        this.timeLeft = this.maxTime;
+        this.generateLevel();
+        this.render();
+        
+        DEMON.speak(`Je te tiens, ${PLAYER.name}.`);
+
+        // Boucle principale
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        this.timerInterval = setInterval(() => this.loop(), 100);
+
+        // Boucle battement de coeur (stress)
+        if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = setInterval(() => {
+            if (this.timeLeft / this.maxTime < 0.3) {
+                AUDIO.playHeartbeat();
+            }
+        }, 1000); // Accélérera avec la logique
+    },
+
+    loop() {
+        if (!this.active) return;
+        
+        this.timeLeft -= 0.1;
+        
+        // Mise à jour barre
+        const pct = (this.timeLeft / this.maxTime) * 100;
+        const bar = document.getElementById('timer-bar');
+        bar.style.width = pct + "%";
+        
+        // Couleurs de stress
+        if (pct < 50) bar.style.background = "#ffff00";
+        if (pct < 20) {
+            bar.style.background = "#ff0000";
+            // Shake screen
+            if (Math.random() > 0.8) document.body.classList.add('shake');
+            else document.body.classList.remove('shake');
+        }
+
+        // Demon observe
+        DEMON.observe(this);
+
+        if (this.timeLeft <= 0) {
+            this.gameOver("TEMPS ÉCOULÉ");
+        }
+    },
+
+    generateLevel() {
+        // Sudoku simplifié pour la démo (logique complète trop lourde ici)
+        // On remplit une grille valide, puis on retire des nombres
+        this.solution = [
+            5,3,4,6,7,8,9,1,2,
+            6,7,2,1,9,5,3,4,8,
+            1,9,8,3,4,2,5,6,7,
+            8,5,9,7,6,1,4,2,3,
+            4,2,6,8,5,3,7,9,1,
+            7,1,3,9,2,4,8,5,6,
+            9,6,1,5,3,7,2,8,4,
+            2,8,7,4,1,9,6,3,5,
+            3,4,5,2,8,6,1,7,9
+        ];
+        // Mélange simple
+        // ... (version courte pour l'exemple)
+        
+        this.grid = [...this.solution];
+        // Retirer des chiffres (difficulté croissante)
+        const holes = 20 + this.level; 
+        for(let i=0; i<holes; i++) {
+            this.grid[Math.floor(Math.random()*81)] = 0;
+        }
+    },
+
+    render() {
+        const div = document.getElementById('grid');
+        div.innerHTML = '';
+        this.grid.forEach((val, i) => {
+            const el = document.createElement('div');
+            el.className = 'cell';
+            if (val !== 0) {
+                el.textContent = val;
+                el.classList.add('fixed');
+            } else {
+                el.onclick = () => this.select(i, el);
+            }
+            div.appendChild(el);
+        });
+    },
+
+    select(idx, el) {
+        if (!this.active) return;
+        document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+        el.classList.add('selected');
+        this.selectedIdx = idx;
+        this.lastActionTime = Date.now();
+    },
+
+    input(num) {
+        if (!this.active || this.selectedIdx === null) return;
+        
+        const cell = document.getElementById('grid').children[this.selectedIdx];
+        
+        if (num === 'X') {
+            cell.textContent = '';
+            return;
+        }
+
+        // Vérification
+        if (num === this.solution[this.selectedIdx]) {
+            // CORRECT
+            AUDIO.playClick();
+            cell.textContent = num;
+            cell.className = 'cell correct fixed';
+            this.grid[this.selectedIdx] = num;
+            this.selectedIdx = null;
+            this.timeLeft += 2; // Bonus temps
+            this.consecutiveErrors = 0;
+            
+            // Win level?
+            if (!this.grid.includes(0)) {
+                this.nextLevel();
+            }
+        } else {
+            // FAUX
+            AUDIO.playError();
+            cell.classList.add('wrong');
+            document.body.classList.add('red-flash');
+            setTimeout(() => {
+                cell.classList.remove('wrong');
+                document.body.classList.remove('red-flash');
+            }, 200);
+            
+            this.timeLeft -= 5; // Pénalité lourde
+            this.consecutiveErrors++;
+        }
+        this.lastActionTime = Date.now();
+    },
+
+    nextLevel() {
+        this.active = false;
+        DEMON.speak("Pas mal... Mais ça se complique.");
+        setTimeout(() => {
+            this.level++;
+            this.start();
+        }, 2000);
+    },
+
+    gameOver(reason) {
+        this.active = false;
+        clearInterval(this.timerInterval);
+        clearInterval(this.heartbeatInterval);
+        
+        // Arrêt du drone d'ambiance
+        if(AUDIO.droneGain) {
+            AUDIO.droneGain.gain.linearRampToValueAtTime(0, AUDIO.ctx.currentTime + 2);
+        }
+
+        document.getElementById('game-container').innerHTML = `
+            <div style="text-align:center; margin-top: 30vh;">
+                <h1 style="font-family:'Creepster'; font-size:5rem; color:red; text-shadow:0 0 20px red">MORT</h1>
+                <p style="font-size:2rem; color:#888;">${reason}</p>
+                <p style="margin-top:20px; color:var(--primary)">${PLAYER.name}, ton âme est perdue.</p>
+                <button class="big-btn" onclick="location.reload()">SOUFFRIR ENCORE</button>
+            </div>
+        `;
+        
+        // Phrase finale cruelle
+        if (PLAYER.loved) {
+            DEMON.speak(`${PLAYER.loved} ne pleurera même pas ta mort.`);
+        } else {
+            DEMON.speak("Personne ne se souviendra de toi.");
+        }
+    }
+};
+</script>
+</body>
+</html>
