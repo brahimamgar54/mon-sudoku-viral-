@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SUDOKU MALPHAS - L'Enfer des Chiffres</title>
+    <meta name="theme-color" content="#050505">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --bg: #050505;
+            --pixel-white: #e0e0e0;
+            --malphas-red: #8b0000;
+            --malphas-yellow: #ffcc00;
+            --hospice-color: #e0e0e0;
+            --morgue-color: #a0ced9;
+            --abattoir-color: #ff4d4d;
+            --neant-color: #000000;
+        }
+
+        @font-face {
+            font-family: 'VT323';
+            src: url('https://fonts.cdnfonts.com/s/14883/VT323-Regular.woff') format('woff');
+            font-display: swap;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            background: var(--bg);
+            color: var(--pixel-white);
+            font-family: 'VT323', monospace;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            transition: background-color 2s ease, filter 2s ease;
+        }
+
+        /* --- ÉCRAN D'INTRODUCTION --- */
+        #intro-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .eyes-container {
+            width: 100px;
+            height: 50px;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .malphas-eye {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #ffcc00;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #ffcc00;
+            animation: eyeBlink 3s infinite;
+        }
+
+        .malphas-eye.left { left: 30px; }
+        .malphas-eye.right { right: 30px; }
+
+        .glitch-text {
+            font-size: 2.5rem;
+            letter-spacing: 5px;
+            color: var(--malphas-yellow);
+            text-shadow: 0 0 10px var(--malphas-yellow);
+            animation: flicker 0.15s infinite, glitch 5s infinite;
+            margin-bottom: 30px;
+        }
+
+        #name-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--malphas-yellow);
+            color: var(--malphas-yellow);
+            font-family: 'VT323';
+            font-size: 2rem;
+            text-align: center;
+            outline: none;
+            margin-top: 20px;
+            width: 80%;
+            max-width: 300px;
+            padding: 10px;
+            text-transform: uppercase;
+        }
+
+        .intro-subtitle {
+            font-size: 1rem;
+            color: #444;
+            margin-top: 40px;
+            animation: pulse 2s infinite;
+        }
+
+        /* --- INTERFACE DE JEU --- */
+        #game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 95vw;
+            max-width: 500px;
+            padding: 10px;
+            position: relative;
+        }
+
+        #header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 5px;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        #player-display {
+            color: var(--malphas-yellow);
+            text-shadow: 0 0 5px var(--malphas-yellow);
+        }
+
+        #heart-timer {
+            color: #ff3333;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            animation: beat 1s infinite;
+            filter: drop-shadow(0 0 3px #ff3333);
+        }
+
+        #level-display { font-size: 1rem; color: #666; }
+
+        /* LA GRILLE SUDOKU */
+        #grid-container {
+            position: relative;
+            margin: 10px 0;
+            width: 100%;
+            aspect-ratio: 1;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            grid-template-rows: repeat(9, 1fr);
+            gap: 1px;
+            background: #333;
+            border: 4px solid var(--pixel-white);
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+        }
+
+        .cell {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(16px, 5vw, 24px);
+            cursor: pointer;
+            border: 0.5px solid #222;
+            position: relative;
+            color: var(--pixel-white);
+        }
+
+        .cell:nth-child(3n) { border-right: 2px solid #555; }
+        .cell:nth-child(n+19):nth-child(-n+27),
+        .cell:nth-child(n+46):nth-child(-n+54) { border-bottom: 2px solid #555; }
+        .cell:nth-child(9n) { border-right: none; }
+        .cell:nth-last-child(-n+9) { border-bottom: none; }
+
+        .cell.selected { background: #1a1a1a; color: var(--malphas-yellow); }
+        .cell.fixed { color: #666; font-weight: bold; }
+        .cell.error { color: var(--malphas-red); animation: shake 0.3s; }
+        .cell.correct { color: #00ff00; animation: pulseCorrect 0.5s; }
+        .cell.hesitating { box-shadow: inset 0 0 10px #ff9900; }
+
+        /* PAD NUMÉRIQUE */
+        #numpad-container { width: 100%; margin-top: 20px; }
+        #numpad { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-bottom: 10px; }
+        
+        .num-btn {
+            aspect-ratio: 1;
+            background: #111;
+            border: 1px solid #444;
+            color: white;
+            font-family: 'VT323';
+            font-size: 1.5rem;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        .num-btn:active { background: #333; border-color: var(--malphas-yellow); }
+
+        #action-buttons { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn {
+            flex: 1; background: #222; border: 1px solid #444; color: white;
+            padding: 10px; font-family: 'VT323'; font-size: 1.2rem; cursor: pointer;
+        }
+        #notes-btn.active { background: #004400; border-color: #44ff44; color: #44ff44; }
+
+        /* DIALOGUES */
+        #subtitles-container {
+            width: 100%; margin-top: 20px; min-height: 50px;
+            border-top: 1px solid #333; padding-top: 10px;
+        }
+        #subtitles {
+            text-align: center; font-style: italic; color: var(--malphas-yellow);
+            padding: 5px; font-size: 1.1rem; text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        /* NOTES DANS CELLULES */
+        .notes {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+            pointer-events: none;
+        }
+        .note-digit { font-size: 8px; color: #888; display: flex; justify-content: center; align-items: center; }
+
+        /* EFFETS VISUELS */
+        .blood-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100; opacity: 0; transition: opacity 0.5s;
+        }
+
+        /* ANIMATIONS */
+        @keyframes beat { 0% { transform: scale(1); } 15% { transform: scale(1.2); } 30% { transform: scale(1); } }
+        @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        @keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 100% { transform: translate(0); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes eyeBlink { 0%, 90%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+        @keyframes pulseCorrect { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* MODES D'ARÈNE */
+        .hospice-mode { --pixel-white: var(--hospice-color); }
+        .morgue-mode { --pixel-white: var(--morgue-color); --bg: #001a1a; }
+        .abattoir-mode { --pixel-white: var(--abattoir-color); --bg: #2b0505; }
+        .abattoir-mode .cell { background: #4a0000; border-color: #220000; }
+        .neant-mode { --pixel-white: var(--neant-color); --bg: #ffffff; }
+        .neant-mode body { filter: invert(1); }
+
+        /* CANVAS DE MORT */
+        #death-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; display: none; }
+    </style>
+</head>
+<body class="hospice-mode">
+
+    <div class="blood-overlay" id="vignette"></div>
+    <canvas id="death-canvas"></canvas>
+
+    <div id="intro-screen">
+        <div class="eyes-container">
+            <div class="malphas-eye left"></div>
+            <div class="malphas-eye right"></div>
+        </div>
+        <div class="glitch-text">SUDOKU MALPHAS</div>
+        <p style="margin-top: 30px; font-size: 1.2rem;">ENTREZ VOTRE VRAI NOM...</p>
+        <input type="text" id="name-input" maxlength="12" autocomplete="off">
+        <p class="intro-subtitle">Appuyez sur ENTRÉE pour sceller le pacte</p>
+    </div>
+
+    <div id="game-container">
+        <div id="header">
+            <div id="player-display">ÂME: ???</div>
+            <div id="heart-timer">🫀 <span id="time">05:00</span></div>
+        </div>
+
+        <div id="grid-container">
+            <div id="grid"></div>
+        </div>
+
+        <div id="numpad-container">
+            <div id="numpad">
+                </div>
+            <div id="action-buttons">
+                <button id="erase-btn" class="action-btn">EFFACER</button>
+                <button id="notes-btn" class="action-btn">NOTES</button>
+            </div>
+        </div>
+
+        <div id="subtitles-container">
+            <div id="subtitles">...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const CONFIG = {
+            BASE_TIME: 300,
+            PENALTY: 10
+        };
+
+        const DIALOGUES = {
+            WELCOME: "Salut... [NOM]. Les chiffres ne mentent jamais.",
+            HOSPICE: ["Les chiffres sont tes seuls amis ici.", "Le 5 va là... je t'aide par pitié."],
+            MORGUE: ["L'odeur du formol te dérange ?", "Tes mains tremblent."],
+            ABATTOIR: ["JE SAIS QUE TU TRICHES !", "Saigner, c'est vivre."],
+            ERRORS: ["Ton cerveau fuit.", "Encore raté.", "Pathétique."],
+            TIME: ["Le temps te dévore.", "Tic... tac... BOUM."]
+        };
+
+        // Exemple Niveau 1 (Facile)
+        const LEVEL_1 = {
+            puzzle: [
+                5,3,0,0,7,0,0,0,0,
+                6,0,0,1,9,5,0,0,0,
+                0,9,8,0,0,0,0,6,0,
+                8,0,0,0,6,0,0,0,3,
+                4,0,0,8,0,3,0,0,1,
+                7,0,0,0,2,0,0,0,6,
+                0,6,0,0,0,0,2,8,0,
+                0,0,0,4,1,9,0,0,5,
+                0,0,0,0,8,0,0,7,9
+            ],
+            solution: [
+                5,3,4,6,7,8,9,1,2,
+                6,7,2,1,9,5,3,4,8,
+                1,9,8,3,4,2,5,6,7,
+                8,5,9,7,6,1,4,2,3,
+                4,2,6,8,5,3,7,9,1,
+                7,1,3,9,2,4,8,5,6,
+                9,6,1,5,3,7,2,8,4,
+                2,8,7,4,1,9,6,3,5,
+                3,4,5,2,8,6,1,7,9
+            ]
+        };
+
+        let gameState = {
+            playerName: "",
+            timeLeft: CONFIG.BASE_TIME,
+            timerInterval: null,
+            selectedCell: null,
+            notesMode: false,
+            errorCount: 0,
+            currentLevel: 1,
+            completed: false
+        };
+
+        // --- MOTEUR VOCAL MALPHAS ---
+        const synth = window.speechSynthesis;
+        function speak(text, emotion = 'neutral') {
+            if (!gameState.playerName) return;
+            let finalText = text.replace('[NOM]', gameState.playerName);
+            
+            // Affichage sous-titre
+            document.getElementById('subtitles').innerText = finalText;
+            document.getElementById('subtitles').style.opacity = 1;
+
+            // Synthèse
+            synth.cancel();
+            const utter = new SpeechSynthesisUtterance(finalText);
+            utter.lang = 'fr-FR';
+            
+            // Modulation selon l'émotion
+            if (emotion === 'angry') { utter.rate = 1.2; utter.pitch = 0.3; }
+            else if (emotion === 'creepy') { utter.rate = 0.6; utter.pitch = 0.5; }
+            else { utter.rate = 0.9; utter.pitch = 0.6; }
+
+            synth.speak(utter);
+        }
+
+        // --- INITIALISATION ---
+        document.getElementById('name-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const val = this.value.toUpperCase().trim();
+                const banned = ["DIEU", "SATAN", "ADMIN"];
+                
+                if (banned.includes(val) || val === "") {
+                    gameState.playerName = "ÂME ÉGARÉE";
+                    speak("Nom refusé. Tu n'es personne.", 'creepy');
+                } else {
+                    gameState.playerName = val;
+                }
+
+                document.getElementById('intro-screen').style.display = 'none';
+                document.getElementById('game-container').style.display = 'flex';
+                document.getElementById('player-display').innerText = `ÂME: ${gameState.playerName}`;
+                
+                initGame();
+                speak(DIALOGUES.WELCOME, 'neutral');
+            }
+        });
+
+        function initGame() {
+            createGrid();
+            createNumpad();
+            startTimer();
+            
+            // Anti-triche (Focus)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    localStorage.setItem('cheat_suspect', 'true');
+                } else if (localStorage.getItem('cheat_suspect')) {
+                    speak(DIALOGUES.ABATTOIR[0], 'angry');
+                    gameState.timeLeft -= 30;
+                    document.getElementById('grid').style.filter = "blur(5px)";
+                    setTimeout(() => document.getElementById('grid').style.filter = "none", 2000);
+                    localStorage.removeItem('cheat_suspect');
+                }
+            });
+        }
+
+        // --- MOTEUR DE JEU ---
+        function createGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            
+            LEVEL_1.puzzle.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                
+                if (val !== 0) {
+                    cell.innerText = val;
+                    cell.classList.add('fixed');
+                } else {
+                    // Création structure notes
+                    const notesDiv = document.createElement('div');
+                    notesDiv.className = 'notes';
+                    for(let n=1; n<=9; n++) {
+                        let nd = document.createElement('div');
+                        nd.className = 'note-digit';
+                        nd.dataset.n = n;
+                        notesDiv.appendChild(nd);
+                    }
+                    cell.appendChild(notesDiv);
+                    
+                    cell.addEventListener('click', () => selectCell(cell));
+                }
+                grid.appendChild(cell);
+            });
+        }
+
+        function selectCell(cell) {
+            if (gameState.selectedCell) gameState.selectedCell.classList.remove('selected');
+            gameState.selectedCell = cell;
+            cell.classList.add('selected');
+        }
+
+        function createNumpad() {
+            const pad = document.getElementById('numpad');
+            for(let i=1; i<=9; i++) {
+                let btn = document.createElement('button');
+                btn.className = 'num-btn';
+                btn.innerText = i;
+                btn.onclick = () => handleInput(i);
+                pad.appendChild(btn);
+            }
+            
+            document.getElementById('erase-btn').onclick = () => {
+                if(gameState.selectedCell && !gameState.selectedCell.classList.contains('fixed')) {
+                    gameState.selectedCell.childNodes[0].nodeValue = ""; // Hack pour garder les notes
+                    gameState.selectedCell.classList.remove('error', 'correct');
+                }
+            };
+            
+            document.getElementById('notes-btn').onclick = function() {
+                gameState.notesMode = !gameState.notesMode;
+                this.classList.toggle('active');
+            };
+        }
+
+        function handleInput(num) {
+            if (!gameState.selectedCell) return;
+            const idx = parseInt(gameState.selectedCell.dataset.index);
+
+            if (gameState.notesMode) {
+                // Mode Notes
+                const notesContainer = gameState.selectedCell.querySelector('.notes');
+                const noteDigit = notesContainer.querySelector(`[data-n="${num}"]`);
+                noteDigit.innerText = noteDigit.innerText === "" ? num : "";
+            } else {
+                // Mode Jeu
+                // Nettoyer notes
+                gameState.selectedCell.querySelector('.notes').childNodes.forEach(n => n.innerText = "");
+                
+                if (LEVEL_1.solution[idx] === num) {
+                    // Correct
+                    // Supprimer le texte existant (nodeValue) pour éviter duplication avec notes
+                    Array.from(gameState.selectedCell.childNodes).forEach(c => { if(c.nodeType === 3) c.remove(); });
+                    
+                    gameState.selectedCell.innerText = num; // Ecrase tout, y compris div notes
+                    gameState.selectedCell.classList.add('correct');
+                    gameState.selectedCell.classList.remove('error');
+                    checkWin();
+                } else {
+                    // Erreur
+                    gameState.selectedCell.classList.add('error');
+                    gameState.errorCount++;
+                    gameState.timeLeft -= CONFIG.PENALTY;
+                    
+                    // Réaction Malphas
+                    if(gameState.errorCount === 1) speak(DIALOGUES.ERRORS[0], 'neutral');
+                    if(gameState.errorCount === 3) speak(DIALOGUES.ERRORS[2], 'angry');
+                    
+                    // Vibration
+                    if(navigator.vibrate) navigator.vibrate(200);
+                }
+            }
+        }
+
+        function startTimer() {
+            const timeDisplay = document.getElementById('time');
+            const heart = document.getElementById('heart-timer');
+            const vignette = document.getElementById('vignette');
+
+            gameState.timerInterval = setInterval(() => {
+                gameState.timeLeft--;
+                
+                let m = Math.floor(gameState.timeLeft / 60);
+                let s = gameState.timeLeft % 60;
+                timeDisplay.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+                // Effets de stress
+                if (gameState.timeLeft < 60) {
+                    heart.style.animationDuration = "0.5s";
+                    vignette.style.opacity = (60 - gameState.timeLeft) / 60;
+                    vignette.style.background = `radial-gradient(circle, transparent 50%, rgba(139,0,0,${(60-gameState.timeLeft)/100}) 100%)`;
+                }
+
+                if (gameState.timeLeft <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    triggerDeath();
+                }
+            }, 1000);
+        }
+
+        function checkWin() {
+            const cells = document.querySelectorAll('.cell');
+            let filled = 0;
+            cells.forEach(c => {
+                if (c.innerText !== "" && !c.classList.contains('error')) filled++;
+            });
+            if (filled === 81) {
+                clearInterval(gameState.timerInterval);
+                speak("Tu as survécu... pour l'instant. Niveau suivant.", 'neutral');
+                // Ici on pourrait charger le niveau suivant
+            }
+        }
+
+        // --- SYSTÈME DE MORT ---
+        function triggerDeath() {
+            document.getElementById('game-container').style.display = 'none';
+            const canvas = document.getElementById('death-canvas');
+            canvas.style.display = 'block';
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            let f = 0;
+            speak(`Ton temps est écoulé, ${gameState.playerName}.`, 'creepy');
+
+            function animate() {
+                ctx.fillStyle = "black";
+                ctx.fillRect(0,0,canvas.width, canvas.height);
+                
+                // Oeil
+                let cx = canvas.width/2;
+                let cy = canvas.height/2;
+                ctx.fillStyle = "#e0e0e0";
+                ctx.fillRect(cx-100, cy-50, 200, 100);
+                ctx.fillStyle = "#ffcc00";
+                ctx.fillRect(cx-20 + Math.sin(f*0.1)*20, cy-20, 40, 40);
+
+                // Lignes de découpe (L'équarrissage)
+                if(f > 100) {
+                    ctx.strokeStyle = "red";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height);
+                    ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy);
+                    ctx.stroke();
+                }
+
+                if(f < 200) requestAnimationFrame(animate);
+                else location.reload(); // Reset brutal
+                f++;
+            }
+            animate();
+        }
+
+        // Création dynamique du Manifest pour PWA
+        const manifest = {
+            "name": "Sudoku Malphas",
+            "short_name": "Malphas",
+            "start_url": ".",
+            "display": "fullscreen",
+            "background_color": "#000000",
+            "theme_color": "#8b0000",
+            "icons": [] 
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        document.querySelector('link[rel="manifest"]').setAttribute('href', manifestURL);
+
+    </script>
+</body>
+</html>
