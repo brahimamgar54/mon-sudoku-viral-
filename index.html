@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BRUXELLES : ZONE ZÉRO</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: #0a0a0a;
+            --border: #333;
+            --text: #a8b5a8;
+            --highlight: #4caf50;
+            --danger: #d32f2f;
+            --warning: #ff9800;
+            --rare: #ffd700;
+            --ally: #4fc3f7;
+            --font: 'Courier New', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: var(--font); font-size: 14px;
+            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        /* CRT SCANLINE EFFECT */
+        .crt::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+        }
+
+        /* LAYOUT */
+        .app { max-width: 800px; margin: 0 auto; width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; border-left: 1px solid var(--border); border-right: 1px solid var(--border); background: var(--panel); }
+        
+        /* HEADER */
+        header { padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; background: #000; z-index: 3;}
+        .loc-title { color: var(--highlight); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .clock { color: #666; font-size: 12px; }
+
+        /* BARS */
+        .bars-container { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 10px; border-bottom: 1px solid var(--border); font-size: 10px; }
+        .bar-wrap { background: #111; height: 16px; position: relative; border: 1px solid #222; }
+        .bar-fill { height: 100%; transition: width 0.3s; }
+        .bar-text { position: absolute; top: 0; left: 5px; line-height: 14px; color: #fff; text-shadow: 1px 1px 1px #000; z-index: 1; }
+        
+        /* MAIN AREA */
+        .viewport { flex: 1; overflow-y: auto; padding: 15px; position: relative; }
+        .screen { display: none; animation: fadeIn 0.3s; }
+        .screen.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* UI COMPONENTS */
+        h2 { color: #eee; font-size: 16px; border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; }
+        p { margin-bottom: 10px; line-height: 1.5; color: #ccc; }
+        .tag { display: inline-block; padding: 2px 5px; font-size: 10px; border-radius: 3px; margin-right: 5px; border: 1px solid transparent; }
+        .tag.danger { color: var(--danger); border-color: var(--danger); }
+        .tag.rad { color: var(--warning); border-color: var(--warning); }
+        .tag.ally { color: var(--ally); border-color: var(--ally); }
+
+        .btn {
+            display: block; width: 100%; text-align: left; background: #111; color: #aaa;
+            border: 1px solid var(--border); padding: 12px; margin-bottom: 8px; cursor: pointer;
+            font-family: var(--font); transition: 0.2s; position: relative;
+        }
+        .btn:hover { background: #1a1a1a; color: var(--highlight); border-color: var(--highlight); padding-left: 15px; }
+        .btn:disabled { opacity: 0.5; pointer-events: none; }
+        .btn strong { color: #ddd; display: block; margin-bottom: 2px; }
+        .btn small { font-size: 11px; color: #666; }
+
+        /* LOG */
+        .console { height: 120px; background: #000; overflow-y: auto; padding: 10px; font-size: 12px; border-top: 1px solid var(--border); font-family: 'Courier New'; }
+        .log-entry { margin-bottom: 4px; padding-left: 10px; border-left: 2px solid #222; }
+        .log-combat { border-color: var(--danger); color: #e57373; }
+        .log-loot { border-color: var(--rare); color: #fff176; }
+        .log-info { border-color: var(--highlight); color: #81c784; }
+
+        /* NAV */
+        nav { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--border); background: #080808; }
+        nav button { background: none; border: none; padding: 15px 0; color: #555; font-family: var(--font); cursor: pointer; font-size: 10px; text-transform: uppercase; }
+        nav button.active { color: var(--highlight); background: #111; box-shadow: inset 0 -2px 0 var(--highlight); }
+
+        /* MODAL */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: #0a0a0a; border: 1px solid var(--highlight); padding: 20px; max-width: 500px; width: 100%; box-shadow: 0 0 20px rgba(76, 175, 80, 0.2); }
+
+        /* GRID LISTS */
+        .grid-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+        .card { border: 1px solid var(--border); padding: 8px; background: #0f0f0f; font-size: 12px; cursor: pointer; }
+        .card:hover { border-color: #666; }
+        
+        .status-blink { animation: blink 2s infinite; color: var(--danger); }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body class="crt">
+
+<div id="modal" class="modal">
+    <div id="modal-content" class="modal-content"></div>
+</div>
+
+<div class="app">
+    <header>
+        <div>
+            <div class="loc-title" id="ui-loc">CHARGEMENT...</div>
+            <div class="clock" id="ui-weather">Pluie Acide • 18°C</div>
+        </div>
+        <div style="text-align: right">
+            <div class="clock" id="ui-time">J:1 H:08</div>
+            <div style="font-size:10px; color:#888" id="ui-rep">Réputation: Neutre</div>
+        </div>
+    </header>
+
+    <div class="bars-container">
+        <div class="bar-wrap"><div class="bar-fill" id="hp-bar" style="background:var(--danger); width:100%"></div><span class="bar-text">SANTÉ <span id="hp-val">100</span></span></div>
+        <div class="bar-wrap"><div class="bar-fill" id="en-bar" style="background:var(--warning); width:100%"></div><span class="bar-text">FAIM <span id="en-val">100</span></span></div>
+        <div class="bar-wrap"><div class="bar-fill" id="hyd-bar" style="background:#29b6f6; width:100%"></div><span class="bar-text">SOIF <span id="hyd-val">100</span></span></div>
+        <div class="bar-wrap"><div class="bar-fill" id="rad-bar" style="background:#76ff03; width:0%"></div><span class="bar-text" style="color:#000">RADS <span id="rad-val">0</span></span></div>
+    </div>
+    <div id="status-effects" style="padding: 0 10px; font-size: 10px; display: flex; gap: 10px;"></div>
+
+    <div class="viewport">
+        
+        <div id="screen-explore" class="screen active">
+            <div id="loc-content"></div>
+            <div id="explore-actions"></div>
+        </div>
+
+        <div id="screen-inv" class="screen">
+            <h2>Inventaire & Équipement</h2>
+            <p style="font-size:12px">Arme: <strong id="ui-equip" style="color:var(--highlight)">Aucune</strong></p>
+            <div id="inv-grid" class="grid-list"></div>
+        </div>
+
+        <div id="screen-craft" class="screen">
+            <h2>Établi de Fortune</h2>
+            <div id="craft-grid" class="grid-list"></div>
+        </div>
+
+        <div id="screen-team" class="screen">
+            <h2>Escouade</h2>
+            <div id="ally-list"></div>
+        </div>
+
+        <div id="screen-combat" class="screen" style="text-align: center;">
+            <div style="border:1px solid var(--danger); padding:15px; margin-bottom:10px; background: #1a0505;">
+                <h2 id="enemy-name" style="color:#ff5252; border:none">ENNEMI</h2>
+                <div class="bar-wrap" style="height:10px; margin-top:5px;"><div id="enemy-hp-bar" style="background:#d32f2f; width:100%; height:100%"></div></div>
+                <p id="enemy-desc" style="font-size:11px; margin-top:5px; color:#aaa"></p>
+                <div id="combat-log-ui" style="height:80px; overflow-y:auto; font-size:11px; text-align:left; border-top:1px solid #333; margin-top:10px; padding-top:5px; opacity:0.8;"></div>
+            </div>
+            <div class="grid-list" style="grid-template-columns: 1fr 1fr;">
+                <button class="btn" onclick="COMBAT.act('atk')"><strong>Attaquer</strong><small>Arme équipée</small></button>
+                <button class="btn" onclick="COMBAT.act('def')"><strong>Défendre</strong><small>-50% Dégâts</small></button>
+                <button class="btn" onclick="COMBAT.act('item')"><strong>Objet</strong><small>Soins/Bombe</small></button>
+                <button class="btn" onclick="COMBAT.act('flee')"><strong>Fuir</strong><small>Risque de coup</small></button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="console" id="console">
+        <div class="log-entry">Système initialisé. Année 2042. Bruxelles Zone Zéro.</div>
+    </div>
+
+    <nav>
+        <button class="nav-btn active" onclick="UI.nav('explore')">Zone</button>
+        <button class="nav-btn" onclick="UI.nav('inv')">Sac</button>
+        <button class="nav-btn" onclick="UI.nav('craft')">Craft</button>
+        <button class="nav-btn" onclick="UI.nav('team')">Groupe</button>
+    </nav>
+</div>
+
+<script>
+/* --- BASE DE DONNÉES (ITEMS, ENNEMIS, RECETTES) --- */
+const DB = {
+    items: {
+        "scrap": { name: "Ferraille", type: "mat", val: 1 },
+        "cloth": { name: "Tissu Sale", type: "mat", val: 1 },
+        "alcohol": { name: "Alcool Pur", type: "mat", val: 5 },
+        "herb": { name: "Herbe Médicinale", type: "mat", val: 3 },
+        "tech": { name: "Circuit Élec.", type: "mat", val: 10 },
+        
+        "water": { name: "Eau (1L)", type: "conso", eff: {hyd: 40}, desc: "Indispensable." },
+        "can": { name: "Conserve", type: "conso", eff: {en: 35}, desc: "Périmé mais comestible." },
+        "medkit": { name: "Kit de Soin", type: "conso", eff: {hp: 50}, desc: "Stoppe les hémorragies." },
+        "pills": { name: "Antibiotiques", type: "conso", eff: {inf: -100}, desc: "Cure l'infection." },
+        "radaway": { name: "Iode", type: "conso", eff: {rad: -50}, desc: "Purge les radiations." },
+        "molotov": { name: "Molotov", type: "combat", dmg: 25, desc: "Brûle tout." },
+
+        "knife": { name: "Couteau", type: "wep", dmg: 6, acc: 90 },
+        "crowbar": { name: "Pied-de-biche", type: "wep", dmg: 9, acc: 80 },
+        "pistol": { name: "Pistolet 9mm", type: "wep", dmg: 22, acc: 70, ammo: "ammo9" },
+        "rifle": { name: "FNC Belge", type: "wep", dmg: 35, acc: 60, ammo: "ammo556" }
+    },
+    
+    recipes: [
+        { id: "bandage", name: "Bandage Propre", req: {"cloth": 2, "alcohol": 1}, out: "medkit", q: 1 },
+        { id: "molo", name: "Cocktail Molotov", req: {"alcohol": 1, "cloth": 1, "scrap": 1}, out: "molotov", q: 1 },
+        { id: "shiv", name: "Surin", req: {"scrap": 3, "cloth": 1}, out: "knife", q: 1 }
+    ],
+
+    enemies: [
+        { id: "rat", name: "Rat Mutant", hp: 15, dmg: 4, disease: 10, xp: 5, loot: ["scrap"] },
+        { id: "zombie", name: "Infecté (Stade 2)", hp: 45, dmg: 10, disease: 20, xp: 15, loot: ["cloth", "pills"] },
+        { id: "looter", name: "Pillard", hp: 35, dmg: 8, disease: 0, xp: 10, loot: ["knife", "can"] },
+        { id: "drone", name: "Drone EuroCorps", hp: 30, dmg: 12, disease: 0, xp: 20, loot: ["tech", "ammo9"] },
+        { id: "wolf", name: "Chien Sauvage", hp: 25, dmg: 7, disease: 5, xp: 10, loot: ["meat"] },
+        { id: "soldier", name: "Déserteur Blindé", hp: 70, dmg: 18, disease: 0, xp: 40, loot: ["rifle", "medkit"] }
+    ],
+
+    locations: {
+        "grand_place": {
+            name: "Grand-Place", danger: 2, rads: 0,
+            desc: "Le cœur brisé de Bruxelles. L'Hôtel de Ville sert de refuge aux corbeaux. C'est un carrefour central.",
+            links: ["bourse", "central", "sablon"],
+            loot: ["scrap", "cloth"]
+        },
+        "bourse": {
+            name: "La Bourse", danger: 3, rads: 0,
+            desc: "Territoire des marchands. Les marches sont barricadées. On peut parfois y faire du troc.",
+            links: ["grand_place", "dansart"],
+            npc: "merchant"
+        },
+        "central": {
+            name: "Gare Centrale", danger: 6, rads: 1,
+            desc: "Les tunnels du métro sont infestés de créatures. L'air y est lourd et métallique.",
+            links: ["grand_place", "parc", "eu_zone"],
+            loot: ["tech", "scrap"]
+        },
+        "parc": {
+            name: "Parc Royal", danger: 7, rads: 0,
+            desc: "Zone militarisée par la Garde Royale. Des bunkers parsèment les pelouses.",
+            links: ["central", "eu_zone", "sablon"],
+            npc: "guard_captain"
+        },
+        "eu_zone": {
+            name: "Quartier UE (Schuman)", danger: 9, rads: 3,
+            desc: "Hautement radioactif. Des drones patrouillent les ruines du Berlaymont. Technologie de pointe à récupérer.",
+            links: ["parc", "cinquantenaire"],
+            loot: ["tech", "pills"]
+        },
+        "cinquantenaire": {
+            name: "Parc du Cinquantenaire", danger: 5, rads: 1,
+            desc: "Une jungle urbaine dense. On entend des hurlements de bêtes.",
+            links: ["eu_zone"],
+            npc: "dog_event",
+            loot: ["herb", "wood"]
+        },
+        "sablon": {
+            name: "Le Sablon", danger: 4, rads: 0,
+            desc: "Ancien quartier riche. Les antiquaires ont été pillés, mais il reste des ressources médicales.",
+            links: ["grand_place", "marolles", "parc"],
+            loot: ["pills", "alcohol"]
+        },
+        "marolles": {
+            name: "Les Marolles", danger: 5, rads: 0,
+            desc: "Un labyrinthe de ruelles. Le marché noir prospère ici. Zone des Parias.",
+            links: ["sablon", "midi"],
+            npc: "medic"
+        },
+        "midi": {
+            name: "Gare du Midi", danger: 8, rads: 0,
+            desc: "Repaire des Pillards sanguinaires. Des trains blindés servent de forteresse.",
+            links: ["marolles"],
+            loot: ["ammo9", "can"]
+        }
+    }
+};
+
+/* --- MOTEUR DE JEU --- */
+const GAME = {
+    state: {
+        hp: 100, maxHp: 100,
+        en: 100, hyd: 100, rad: 0,
+        infected: false, infectionStage: 0,
+        day: 1, hour: 8,
+        loc: "grand_place",
+        inv: {}, equip: null,
+        allies: [],
+        rep: { guard: 0, rebels: 0 },
+        flags: {} // Pour événements uniques
+    },
+
+    init() {
+        // Objets de départ
+        this.addItem("knife", 1);
+        this.addItem("can", 2);
+        this.addItem("water", 1);
+        this.updateUI();
+        UI.log("Bienvenue survivant. Trouvez de l'eau. Évitez les radiations.", "log-info");
+    },
+
+    // TEMPS & STATS
+    passTime(hours) {
+        this.state.hour += hours;
+        
+        // Faim / Soif
+        this.state.en -= hours * 3;
+        this.state.hyd -= hours * 4;
+
+        // Radiations (selon le lieu)
+        const loc = DB.locations[this.state.loc];
+        if (loc.rads > 0) {
+            this.state.rad += (loc.rads * hours * 2);
+            UI.log(`Attention : Zone irradiée (+${loc.rads * hours * 2} Rads)`, "log-combat");
+        }
+
+        // Infection
+        if (this.state.infected) {
+            this.state.infectionStage += hours;
+            this.state.maxHp -= 1; // La maladie ronge la santé max
+            if(this.state.infectionStage % 5 === 0) UI.log("L'infection se propage dans vos veines...", "log-combat");
+        }
+
+        // Effets des stats
+        if (this.state.rad > 80) { this.state.hp -= 5; UI.log("Les radiations vous brûlent.", "log-combat"); }
+        if (this.state.en <= 0 || this.state.hyd <= 0) { this.state.hp -= 5; UI.log("Vous mourrez de privation.", "log-combat"); }
+
+        // Cycle jour
+        if (this.state.hour >= 24) {
+            this.state.hour -= 24;
+            this.state.day++;
+            UI.log(`Jour ${this.state.day} commence.`, "log-info");
+        }
+
+        // Mort
+        if (this.state.hp <= 0) this.gameOver();
+        
+        this.updateUI();
+    },
+
+    // NAVIGATION
+    travel(targetId) {
+        if(COMBAT.active) return;
+        const current = DB.locations[this.state.loc];
+        if (!current.links.includes(targetId)) return;
+
+        this.passTime(1);
+        this.state.loc = targetId;
+        UI.log(`Déplacement vers : ${DB.locations[targetId].name}`, "log-info");
+        
+        // Random Event au déplacement (20% chance)
+        if (Math.random() < 0.2) this.triggerRandomEvent();
+        
+        UI.renderLoc();
+    },
+
+    explore() {
+        this.passTime(1);
+        const loc = DB.locations[this.state.loc];
+        const roll = Math.random() * 100;
+        const danger = loc.danger * 8; // 80% max
+
+        if (roll < danger) {
+            // Combat
+            COMBAT.start(loc.danger);
+        } else if (roll < danger + 40) {
+            // Loot
+            const item = loc.loot[Math.floor(Math.random() * loc.loot.length)];
+            const qty = Math.floor(Math.random() * 2) + 1;
+            this.addItem(item, qty);
+        } else {
+            UI.log("Rien d'intéressant ici. Juste de la poussière.", "log-info");
+        }
+    },
+
+    // INVENTAIRE
+    addItem(id, qty) {
+        if (!this.state.inv[id]) this.state.inv[id] = 0;
+        this.state.inv[id] += qty;
+        UI.log(`+${qty} ${DB.items[id].name}`, "log-loot");
+        UI.renderInv();
+    },
+    
+    useItem(id) {
+        const item = DB.items[id];
+        
+        if (item.type === "conso") {
+            if (item.eff.hp) this.state.hp = Math.min(this.state.maxHp, this.state.hp + item.eff.hp);
+            if (item.eff.en) this.state.en = Math.min(100, this.state.en + item.eff.en);
+            if (item.eff.hyd) this.state.hyd = Math.min(100, this.state.hyd + item.eff.hyd);
+            if (item.eff.rad) this.state.rad = Math.max(0, this.state.rad + item.eff.rad);
+            if (item.eff.inf) {
+                this.state.infected = false;
+                this.state.infectionStage = 0;
+                this.state.maxHp = Math.min(100, this.state.maxHp + 10); // Récupère un peu
+                UI.log("L'infection est guérie.", "log-info");
+            }
+            
+            this.state.inv[id]--;
+            if(this.state.inv[id] <= 0) delete this.state.inv[id];
+            UI.log(`Utilisé: ${item.name}`, "log-info");
+        } 
+        else if (item.type === "wep") {
+            this.state.equip = id;
+            UI.log(`Équipé: ${item.name}`, "log-info");
+        }
+        this.updateUI();
+        UI.renderInv();
+    },
+
+    craft(recipeId) {
+        const r = DB.recipes.find(x => x.id === recipeId);
+        // Check req
+        for (let [mat, qty] of Object.entries(r.req)) {
+            if (!this.state.inv[mat] || this.state.inv[mat] < qty) {
+                UI.log("Matériaux insuffisants.", "log-combat");
+                return;
+            }
+        }
+        // Consume
+        for (let [mat, qty] of Object.entries(r.req)) {
+            this.state.inv[mat] -= qty;
+            if(this.state.inv[mat]<=0) delete this.state.inv[mat];
+        }
+        this.addItem(r.out, r.q);
+        UI.renderCraft();
+    },
+
+    // ALLIÉS
+    addAlly(id, name, type) {
+        this.state.allies.push({ id, name, type, hp: 50 });
+        UI.log(`${name} a rejoint votre groupe !`, "log-info");
+        UI.renderTeam();
+    },
+
+    triggerRandomEvent() {
+        UI.log("Un survivant errant demande de l'aide...", "log-info");
+        // Simplifié pour la démo
+    },
+
+    gameOver() {
+        alert(`VOUS ÊTES MORT.\nJours survécus: ${this.state.day}\nCause: ${this.state.rad >= 100 ? "Irradiation" : "Blessures/Faim"}`);
+        location.reload();
+    },
+
+    updateUI() {
+        // Bars
+        document.getElementById('hp-bar').style.width = (this.state.hp / this.state.maxHp * 100) + "%";
+        document.getElementById('hp-val').innerText = Math.floor(this.state.hp) + "/" + this.state.maxHp;
+        
+        document.getElementById('en-bar').style.width = this.state.en + "%";
+        document.getElementById('en-val').innerText = Math.floor(this.state.en);
+        
+        document.getElementById('hyd-bar').style.width = this.state.hyd + "%";
+        document.getElementById('hyd-val').innerText = Math.floor(this.state.hyd);
+        
+        document.getElementById('rad-bar').style.width = this.state.rad + "%";
+        document.getElementById('rad-val').innerText = Math.floor(this.state.rad);
+
+        // Status tags
+        const statusDiv = document.getElementById('status-effects');
+        statusDiv.innerHTML = "";
+        if(this.state.infected) statusDiv.innerHTML += `<span class="tag danger status-blink">INFECTÉ</span>`;
+        if(this.state.rad > 50) statusDiv.innerHTML += `<span class="tag rad status-blink">IRRADIÉ</span>`;
+        if(this.state.en < 20) statusDiv.innerHTML += `<span class="tag danger">AFFAMÉ</span>`;
+
+        document.getElementById('ui-time').innerText = `J:${this.state.day} H:${this.state.hour}`;
+        document.getElementById('ui-equip').innerText = this.state.equip ? DB.items[this.state.equip].name : "Mains nues";
+    }
+};
+
+/* --- COMBAT TACTIQUE --- */
+const COMBAT = {
+    active: false,
+    enemy: null,
+    
+    start(dangerLevel) {
+        this.active = true;
+        UI.nav('combat');
+        
+        // Sélection ennemi selon danger
+        const candidates = DB.enemies.filter(e => dangerLevel < 5 ? e.hp < 40 : true);
+        const template = candidates[Math.floor(Math.random() * candidates.length)];
+        
+        this.enemy = JSON.parse(JSON.stringify(template)); // Deep copy
+        this.enemy.maxHp = this.enemy.hp;
+
+        document.getElementById('enemy-name').innerText = this.enemy.name;
+        document.getElementById('enemy-desc').innerText = `Santé: ${this.enemy.hp} | Dégâts: ${this.enemy.dmg}`;
+        document.getElementById('combat-log-ui').innerHTML = "";
+        
+        this.log(`Un ${this.enemy.name} bloque le passage !`);
+    },
+
+    act(action) {
+        if(!this.active) return;
+        
+        // TOUR JOUEUR
+        if (action === 'atk') {
+            const wep = GAME.state.equip ? DB.items[GAME.state.equip] : {name:"Poings", dmg:3, acc:90};
+            if (Math.random() * 100 < wep.acc) {
+                const dmg = Math.floor(wep.dmg * (0.8 + Math.random() * 0.4));
+                this.hitEnemy(dmg, wep.name);
+            } else {
+                this.log(`Vous manquez votre coup (${wep.name}).`);
+            }
+        } 
+        else if (action === 'def') {
+            this.log("Posture défensive adoptée.");
+            this.enemyTurn(true);
+            return;
+        }
+        else if (action === 'item') {
+            if(GAME.state.inv["molotov"]) {
+                GAME.state.inv["molotov"]--;
+                this.hitEnemy(25, "Molotov");
+                this.log("Molotov lancé ! Feu !");
+            } else if (GAME.state.inv["medkit"]) {
+                GAME.useItem("medkit");
+                this.log("Soin d'urgence appliqué.");
+            } else {
+                this.log("Aucun objet de combat utile.");
+                return;
+            }
+        }
+        else if (action === 'flee') {
+            if (Math.random() > 0.5) {
+                this.log("Fuite réussie !", "log-info");
+                this.end();
+                return;
+            } else {
+                this.log("Fuite ratée !");
+            }
+        }
+
+        // TOUR ALLIÉS (Auto)
+        GAME.state.allies.forEach(ally => {
+            if(this.enemy.hp > 0) {
+                const allyDmg = Math.floor(Math.random() * 5) + 2;
+                this.enemy.hp -= allyDmg;
+                this.log(`${ally.name} attaque : ${allyDmg} dégâts.`);
+            }
+        });
+
+        if (this.enemy.hp <= 0) {
+            this.win();
+        } else {
+            setTimeout(() => this.enemyTurn(false), 500);
+        }
+    },
+
+    hitEnemy(amount, source) {
+        this.enemy.hp -= amount;
+        this.log(`Hit (${source}) : -${amount} HP`);
+        const pct = (this.enemy.hp / this.enemy.maxHp) * 100;
+        document.getElementById('enemy-hp-bar').style.width = Math.max(0, pct) + "%";
+    },
+
+    enemyTurn(isDefending) {
+        if (!this.active || this.enemy.hp <= 0) return;
+
+        let dmg = this.enemy.dmg * (0.8 + Math.random() * 0.4);
+        if (isDefending) dmg /= 2;
+        
+        GAME.state.hp -= Math.floor(dmg);
+        this.log(`${this.enemy.name} vous frappe : -${Math.floor(dmg)} HP`, "log-combat");
+
+        // Infection Check
+        if (this.enemy.disease > 0 && !isDefending && Math.random() * 100 < this.enemy.disease) {
+            if (!GAME.state.infected) {
+                GAME.state.infected = true;
+                this.log("ATTENTION : Vous avez été infecté !", "log-combat");
+            }
+        }
+
+        if (GAME.state.hp <= 0) GAME.gameOver();
+        GAME.updateUI();
+    },
+
+    log(msg, cls="") {
+        const ui = document.getElementById('combat-log-ui');
+        ui.innerHTML = `<div class="${cls}">> ${msg}</div>` + ui.innerHTML;
+    },
+
+    win() {
+        this.log(`Victoire ! +${this.enemy.xp} XP`, "log-info");
+        // Loot
+        this.enemy.loot.forEach(lid => {
+            if(Math.random() > 0.5) GAME.addItem(lid, 1);
+        });
+        
+        setTimeout(() => {
+            this.active = false;
+            UI.nav('explore');
+            GAME.updateUI();
+        }, 1500);
+    },
+
+    end() {
+        this.active = false;
+        setTimeout(() => UI.nav('explore'), 1000);
+    }
+};
+
+/* --- INTERFACE UTILS --- */
+const UI = {
+    nav(screenId) {
+        if (COMBAT.active && screenId !== 'combat') return;
+        
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(`screen-${screenId}`).classList.add('active');
+        
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        // Highlighting logic removed for brevity
+
+        if(screenId === 'inv') this.renderInv();
+        if(screenId === 'explore') this.renderLoc();
+        if(screenId === 'craft') this.renderCraft();
+        if(screenId === 'team') this.renderTeam();
+    },
+
+    renderLoc() {
+        const loc = DB.locations[GAME.state.loc];
+        const div = document.getElementById('loc-content');
+        document.getElementById('ui-loc').innerText = loc.name;
+        
+        let html = `<h2>${loc.name} <span class="tag ${loc.danger>5?'danger':'ally'}">Danger ${loc.danger}</span></h2>`;
+        html += `<p>${loc.desc}</p>`;
+        
+        if (loc.npc && !GAME.state.flags[loc.npc]) {
+            html += `<button class="btn" style="border-color:var(--rare)" onclick="NPC.interact('${loc.npc}')"><strong>❓ Quelqu'un est ici...</strong><small>Interagir</small></button>`;
+        }
+
+        div.innerHTML = html;
+
+        // Boutons de déplacement & Action
+        const actions = document.getElementById('explore-actions');
+        let actHtml = `<button class="btn" onclick="GAME.explore()"><strong>Fouiller la zone</strong><small>-1h, Risqué</small></button>`;
+        
+        actHtml += `<div style="margin-top:20px; border-top:1px solid #333; padding-top:10px;"><p style="font-size:10px; color:#666">DESTINATIONS</p>`;
+        loc.links.forEach(lid => {
+            const dest = DB.locations[lid];
+            actHtml += `<button class="btn" onclick="GAME.travel('${lid}')"><strong>${dest.name}</strong><small>${dest.rads>0 ? '☢️ ZONE RAD' : 'Sûr'}</small></button>`;
+        });
+        actHtml += `</div>`;
+        actions.innerHTML = actHtml;
+    },
+
+    renderInv() {
+        const grid = document.getElementById('inv-grid');
+        grid.innerHTML = "";
+        for (let [id, qty] of Object.entries(GAME.state.inv)) {
+            const item = DB.items[id];
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.innerHTML = `<div style="float:right; color:#fff">${qty}</div><strong style="color:${item.type==='wep'?'var(--highlight)':'#ccc'}">${item.name}</strong><br><span style="color:#666; font-size:10px">${item.type}</span>`;
+            el.onclick = () => GAME.useItem(id);
+            grid.appendChild(el);
+        }
+    },
+
+    renderCraft() {
+        const grid = document.getElementById('craft-grid');
+        grid.innerHTML = "";
+        DB.recipes.forEach(r => {
+            let reqTxt = "";
+            let canCraft = true;
+            for(let [m, q] of Object.entries(r.req)) {
+                const has = GAME.state.inv[m] || 0;
+                reqTxt += `${DB.items[m].name} ${has}/${q}, `;
+                if(has < q) canCraft = false;
+            }
+            
+            const el = document.createElement('div');
+            el.className = 'card';
+            if(!canCraft) el.style.opacity = "0.5";
+            el.innerHTML = `<strong>${r.name}</strong><br><small>${reqTxt}</small>`;
+            el.onclick = () => canCraft ? GAME.craft(r.id) : null;
+            grid.appendChild(el);
+        });
+    },
+
+    renderTeam() {
+        const list = document.getElementById('ally-list');
+        list.innerHTML = "";
+        if(GAME.state.allies.length === 0) {
+            list.innerHTML = "<p>Vous êtes seul.</p>";
+            return;
+        }
+        GAME.state.allies.forEach(a => {
+            list.innerHTML += `<div class="card"><strong style="color:var(--ally)">${a.name}</strong> (${a.type})<br>Santé: ${a.hp}</div>`;
+        });
+    },
+
+    log(msg, type="") {
+        const c = document.getElementById('console');
+        c.innerHTML = `<div class="log-entry ${type}">[${GAME.state.hour}h] ${msg}</div>` + c.innerHTML;
+    },
+
+    showModal(html) {
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('modal-content').innerHTML = html;
+    },
+    closeModal() { document.getElementById('modal').style.display = 'none'; }
+};
+
+/* --- SYSTÈME DE DIALOGUE / NPC --- */
+const NPC = {
+    interact(id) {
+        let html = "";
+        
+        if (id === "dog_event") {
+            html = `<h2>Chien Blessé</h2>
+            <p>Un berger allemand est coincé sous des débris. Il grogne de douleur.</p>
+            <button class="btn" onclick="NPC.resolve('dog_save')">Soigner et Libérer (-1 Kit de Soin)</button>
+            <button class="btn" onclick="NPC.resolve('dog_ignore')">L'ignorer</button>
+            <button class="btn" onclick="NPC.resolve('dog_kill')">L'achever pour la viande</button>`;
+        } 
+        else if (id === "merchant") {
+            html = `<h2>Boris le Marchand</h2>
+            <p>"J'ai des trucs à vendre. Pas de crédit."</p>
+            <button class="btn" onclick="GAME.addItem('can', 1); GAME.state.inv['scrap']-=5; UI.closeModal(); UI.renderInv()">Acheter Conserve (5 Ferraille)</button>
+            <button class="btn" onclick="UI.closeModal()">Partir</button>`;
+        }
+        else if (id === "medic") {
+             html = `<h2>Docteur Mabuse</h2>
+            <p>"Tu as l'air malade. Je peux t'aider si tu m'aides."</p>
+            <button class="btn" onclick="NPC.resolve('medic_recruit')">Recruter (Nécessite: Réputation Neutre+)</button>
+            <button class="btn" onclick="UI.closeModal()">Partir</button>`;
+        }
+
+        UI.showModal(html);
+    },
+
+    resolve(action) {
+        if (action === 'dog_save') {
+            if (GAME.state.inv['medkit']) {
+                GAME.state.inv['medkit']--;
+                GAME.addAlly('dog', 'Rex', 'Chien d\'attaque');
+                GAME.state.flags['dog_event'] = true;
+                UI.closeModal();
+                UI.log("Rex vous lèche la main. Il vous suivra.", "log-info");
+            } else {
+                alert("Vous n'avez pas de Kit de Soin !");
+            }
+        } 
+        else if (action === 'dog_ignore') {
+            UI.closeModal();
+            UI.log("Vous laissez le chien à son triste sort.");
+        }
+        else if (action === 'dog_kill') {
+            GAME.state.flags['dog_event'] = true;
+            GAME.addItem('can', 2); // "Viande" simplifiée en conserve pour le code
+            UI.closeModal();
+            UI.log("Vous avez tué le chien. Cruel mais nourrissant.", "log-combat");
+        }
+        else if (action === 'medic_recruit') {
+            GAME.addAlly('doc', 'Doc', 'Soigneur');
+            GAME.state.flags['medic'] = true;
+            UI.closeModal();
+        }
+    }
+};
+
+window.onload = () => GAME.init();
+</script>
+</body>
+</html>
