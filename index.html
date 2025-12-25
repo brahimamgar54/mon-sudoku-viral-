@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BRUXELLES CENDRES : EXTENDED</title>
+    <style>
+        :root {
+            --bg-color: #020202;
+            --text-main: #b8c5b6; /* Teinte verdâtre terminal vintage */
+            --text-dim: #5c665e;
+            --accent: #5e8c61;
+            --danger: #8f3f3f;
+            --rare: #d4af37;
+            --ui-border: 1px solid #2a332b;
+            --font-main: 'Courier New', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            font-size: 14px;
+            line-height: 1.5;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            text-shadow: 0 0 2px rgba(94, 140, 97, 0.2);
+        }
+
+        /* --- UI ELEMENTS --- */
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none; z-index: 999; opacity: 0.6;
+        }
+
+        .app-container {
+            max-width: 900px; margin: 0 auto; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            border-left: var(--ui-border); border-right: var(--ui-border);
+            background: #050505; position: relative;
+        }
+
+        /* HEADER */
+        .top-bar {
+            padding: 12px; border-bottom: var(--ui-border); background: #0a0f0a;
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .time-box { font-size: 12px; color: var(--text-dim); }
+        .location-title { font-size: 16px; font-weight: bold; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; }
+
+        /* STATS */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 2px; background: var(--ui-border); border-bottom: var(--ui-border);
+        }
+        .stat-box { background: #080808; padding: 8px; text-align: center; }
+        .stat-val { font-weight: bold; font-size: 15px; }
+        .stat-name { font-size: 9px; color: var(--text-dim); text-transform: uppercase; }
+
+        /* VIEWPORT */
+        .main-viewport {
+            flex: 1; overflow-y: auto; padding: 20px;
+            position: relative; background: radial-gradient(circle at center, #0a0f0a 0%, #000 100%);
+        }
+        
+        .screen { display: none; flex-direction: column; gap: 20px; animation: fadeIn 0.3s; }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* TEXT STYLES */
+        h3 { color: #fff; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px; font-size: 16px; }
+        p { margin-bottom: 12px; color: #ccc; }
+        .flavor-text { font-style: italic; color: #889; font-size: 13px; border-left: 2px solid #444; padding-left: 10px; margin: 10px 0; }
+        .danger-tag { color: var(--danger); font-weight: bold; font-size: 11px; border: 1px solid var(--danger); padding: 2px 5px; border-radius: 3px; display: inline-block; margin-bottom: 10px;}
+        
+        /* INTERACTION */
+        .action-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
+        .btn {
+            background: #111; border: 1px solid #333; color: var(--text-main);
+            padding: 14px; text-align: left; cursor: pointer; transition: all 0.2s;
+            position: relative; overflow: hidden; font-family: var(--font-main);
+        }
+        .btn:hover:not(:disabled) { background: #1a221a; border-color: var(--accent); color: #fff; padding-left: 18px; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn strong { display: block; margin-bottom: 2px; }
+        .btn small { color: #666; font-size: 11px; }
+
+        /* LOGS */
+        .game-log {
+            height: 120px; overflow-y: auto; border-top: var(--ui-border);
+            background: #000; padding: 10px; font-size: 12px; font-family: 'Courier New';
+        }
+        .log-entry { margin-bottom: 6px; padding-left: 8px; border-left: 2px solid #222; }
+        .log-combat { border-color: var(--danger); color: #d67c7c; }
+        .log-item { border-color: var(--rare); color: #e6d69c; }
+        .log-event { border-color: var(--accent); color: #a4d6a6; }
+
+        /* FOOTER NAV */
+        .nav-bar {
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            background: #111; border-top: var(--ui-border);
+        }
+        .nav-item {
+            background: none; border: none; border-right: 1px solid #222;
+            color: #555; padding: 15px 0; font-size: 11px; cursor: pointer; text-align: center;
+        }
+        .nav-item.active { background: #1a221a; color: var(--accent); font-weight: bold; box-shadow: inset 0 -2px 0 var(--accent); }
+
+        /* COMPONENTS */
+        .item-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+        .inv-item { border: 1px solid #333; padding: 8px; background: #0c0c0c; font-size: 12px; position: relative; }
+        .inv-count { position: absolute; top: 4px; right: 4px; color: #fff; background: #333; padding: 1px 5px; font-size: 10px; border-radius: 2px; }
+
+        .progress-bar { width: 100%; background: #222; height: 8px; margin-top: 5px; }
+        .progress-fill { height: 100%; transition: width 0.3s; }
+
+        /* MODAL */
+        #modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000;
+            display: none; justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-box { border: 1px solid #444; background: #0a0a0a; padding: 25px; max-width: 600px; width: 100%; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+
+        /* SPECIAL EFFECTS */
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+
+    <div id="modal">
+        <div class="modal-box" id="modal-content"></div>
+    </div>
+
+    <div class="app-container">
+        <div class="top-bar">
+            <div>
+                <div class="location-title" id="ui-loc">CHARGEMENT...</div>
+                <div class="time-box" id="ui-time">Jour 1 • 08:00</div>
+            </div>
+            <div style="text-align: right">
+                <div id="ui-weather" style="color:#888; font-size: 11px;">Météo inconnu</div>
+                <div id="ui-rep" style="font-size: 10px; color: var(--accent); margin-top: 4px;">Réputation: Neutre</div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box"><div class="stat-val" id="val-hp" style="color:#d65d5d">100</div><div class="stat-name">Santé</div></div>
+            <div class="stat-box"><div class="stat-val" id="val-en" style="color:#d6b65d">100</div><div class="stat-name">Énergie</div></div>
+            <div class="stat-box"><div class="stat-val" id="val-san" style="color:#5d9cd6">100</div><div class="stat-name">Mental</div></div>
+            <div class="stat-box"><div class="stat-val" id="val-xp" style="color:#fff">1</div><div class="stat-name">Niveau</div></div>
+        </div>
+
+        <div class="main-viewport">
+            
+            <div id="screen-explore" class="screen active">
+                <div id="loc-header"></div>
+                <div class="flavor-text" id="loc-desc"></div>
+                <div id="loc-events" style="margin-bottom: 20px;"></div>
+                <div class="action-grid" id="explore-actions"></div>
+            </div>
+
+            <div id="screen-inventory" class="screen">
+                <h3>Inventaire & Équipement</h3>
+                <p style="font-size:12px; color:#666">Arme en main: <span id="equip-weapon" style="color:#fff">Aucune</span></p>
+                <div id="inv-list" class="item-list"></div>
+            </div>
+
+            <div id="screen-journal" class="screen">
+                <h3>Journal de Bord</h3>
+                <div id="journal-list" style="font-size: 12px; color: #aaa;"></div>
+                <h3 style="margin-top:20px">Factions</h3>
+                <div id="faction-list" style="font-size: 12px;"></div>
+            </div>
+
+            <div id="screen-map" class="screen">
+                <h3>Déplacement Rapide</h3>
+                <div id="map-grid" class="action-grid"></div>
+            </div>
+
+            <div id="screen-combat" class="screen" style="text-align: center;">
+                <div style="border: 1px solid var(--danger); padding: 20px; background: #1a0505;">
+                    <h2 id="enemy-name" style="color: #ff5555; margin-bottom: 5px;">ENNEMI</h2>
+                    <p id="enemy-desc" style="font-size:12px; color:#999; margin-bottom: 15px;">Description...</p>
+                    <div class="progress-bar"><div id="enemy-hp" class="progress-fill" style="background:#d64545; width: 100%"></div></div>
+                </div>
+                <div id="combat-log-display" style="height: 80px; overflow-y:auto; border:1px solid #333; margin: 10px 0; padding:5px; text-align: left; font-size: 11px;"></div>
+                <div class="action-grid">
+                    <button class="btn" onclick="COMBAT.act('light')"><strong>Attaque Rapide</strong><small>Précision élevée, dégâts moyens</small></button>
+                    <button class="btn" onclick="COMBAT.act('heavy')"><strong>Attaque Lourde</strong><small>Faible précision, gros dégâts</small></button>
+                    <button class="btn" onclick="COMBAT.act('defend')"><strong>Défense / Soin</strong><small>Réduit dégâts, chance de soin léger</small></button>
+                    <button class="btn" onclick="COMBAT.act('flee')"><strong>Fuir</strong><small>Risque de blessure lors de la fuite</small></button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="game-log" id="main-log">
+            <div class="log-entry">Système initialisé. Bienvenue à Bruxelles.</div>
+        </div>
+
+        <div class="nav-bar">
+            <button class="nav-item active" onclick="UI.nav('explore')">ZONE</button>
+            <button class="nav-item" onclick="UI.nav('inventory')">SAC</button>
+            <button class="nav-item" onclick="UI.nav('map')">CARTE</button>
+            <button class="nav-item" onclick="UI.nav('journal')">JOURNAL</button>
+            <button class="nav-item" onclick="UI.nav('craft')">CRAFT</button>
+        </div>
+    </div>
+
+<script>
+/* ------------------------------------------------------------------
+   CONFIGURATION & BASE DE DONNÉES ÉTENDUE
+   ------------------------------------------------------------------ */
+const DB = {
+    items: {
+        // RESSOURCES
+        "scrap": { name: "Ferraille", type: "mat", val: 2 },
+        "tech": { name: "Composant Élec.", type: "mat", val: 10 },
+        "chem": { name: "Produit Chimique", type: "mat", val: 5 },
+        "cloth": { name: "Tissu", type: "mat", val: 1 },
+        // SOINS & BOUFFE
+        "water": { name: "Eau (Filtre Charbon)", type: "conso", eff: {en: 15, san: 5}, desc: "Trouble mais potable." },
+        "ration": { name: "Ration MRE", type: "conso", eff: {en: 40}, desc: "Goût de carton salé." },
+        "medkit": { name: "Trousse Chirurgicale", type: "conso", eff: {hp: 50}, desc: "Contient des antibiotiques rares." },
+        "pills": { name: "Anxiolytiques", type: "conso", eff: {san: 30}, desc: "Pour oublier les hurlements." },
+        "beer": { name: "Bière Tiède", type: "conso", eff: {en: 5, san: 10}, desc: "Une vieille Cara Pils trouvée dans une cave." },
+        // ARMES
+        "knife": { name: "Couteau de Combat", type: "wep", dmg: 5, acc: 90 },
+        "pipe": { name: "Tuyau de Plomb", type: "wep", dmg: 7, acc: 80 },
+        "machete": { name: "Machette", type: "wep", dmg: 12, acc: 75 },
+        "pistol": { name: "Pistolet 9mm", type: "wep", dmg: 20, acc: 60, ammo: "ammo9mm" },
+        "rifle": { name: "Fusil FNC", type: "wep", dmg: 35, acc: 50, ammo: "ammo556" }
+    },
+
+    factions: {
+        "garde": { name: "La Garde Royale", desc: "Militaires occupant le Parc Royal. Loi martiale stricte." },
+        "rats": { name: "Rats des Tunnels", desc: "Survivants du Métro. Marchands et voleurs." },
+        "atome": { name: "Culte de l'Atome", desc: "Fanatiques vénérant les sphères de l'Atomium." },
+        "ue": { name: "Technocrates (UE)", desc: "IA et cyborgs contrôlant le quartier Schuman." }
+    },
+
+    locations: {
+        "grand_place": {
+            name: "Grand-Place",
+            danger: 3,
+            faction: "rats",
+            desc: "Les pavés sont glissants de cendre noire. L'Hôtel de Ville, éventré, sert de repaire aux corbeaux. Des tentes de fortune s'agglutinent près de la Maison du Roi.",
+            env: ["Odeur de brûlé", "Craquement de verre", "Vent sifflant"],
+            loot: ["scrap", "cloth", "beer"],
+            links: ["bourse", "sablon", "central"]
+        },
+        "bourse": {
+            name: "La Bourse",
+            danger: 4,
+            faction: "rats",
+            desc: "Les marches sont barricadées. C'est un point d'échange neutre, mais les ruelles alentour regorgent de coupe-jarrets.",
+            npc: "merchant_boris",
+            loot: ["scrap", "water"],
+            links: ["grand_place", "ste_catherine", "dansart"]
+        },
+        "central": {
+            name: "Gare Centrale",
+            danger: 6,
+            faction: "none",
+            desc: "Un gouffre sombre. L'escalier vers les quais descend dans les ténèbres absolues. On entend des grattements titanesques en bas.",
+            loot: ["tech", "scrap"],
+            links: ["grand_place", "parc_royal"]
+        },
+        "parc_royal": {
+            name: "Parc de Bruxelles",
+            danger: 8,
+            faction: "garde",
+            desc: "Des bunkers ont été creusés dans les pelouses. Des projecteurs balayent la zone depuis le Palais. Zone d'exclusion.",
+            loot: ["ration", "ammo9mm"],
+            links: ["central", "loi", "sablon"]
+        },
+        "sablon": {
+            name: "Le Sablon",
+            danger: 5,
+            faction: "none",
+            desc: "Les antiquaires ont été pillés. L'église Notre-Dame projette une ombre menaçante. Les gargouilles semblent bouger.",
+            loot: ["pills", "cloth"],
+            links: ["grand_place", "parc_royal", "marolles"]
+        },
+        "marolles": {
+            name: "Les Marolles",
+            danger: 5,
+            faction: "rats",
+            desc: "Un labyrinthe de ruelles. Le marché aux puces est devenu un marché noir d'organes et de drogues.",
+            npc: "doc_flesher",
+            loot: ["medkit", "chem"],
+            links: ["sablon", "midi"]
+        },
+        "midi": {
+            name: "Gare du Midi",
+            danger: 9,
+            faction: "none",
+            desc: "Le territoire des Pillards Sanguinaires. Des trains à l'arrêt forment des murs d'acier. Des cadavres pendent aux caténaires.",
+            loot: ["scrap", "machete"],
+            links: ["marolles", "abattoirs"]
+        },
+        "loi": {
+            name: "Rue de la Loi",
+            danger: 7,
+            faction: "ue",
+            desc: "Canyon de verre et d'acier. Des drones de sécurité patrouillent encore, tirant à vue sur tout ce qui a une température corporelle.",
+            loot: ["tech", "battery"],
+            links: ["parc_royal", "cinquantenaire"]
+        },
+        "cinquantenaire": {
+            name: "Cinquantenaire",
+            danger: 6,
+            faction: "none",
+            desc: "L'arche de triomphe s'est effondrée en partie. Le parc est retourné à l'état sauvage. On parle d'ours mutants échappés d'un zoo privé.",
+            loot: ["water", "herb"],
+            links: ["loi"]
+        },
+        "atomium": {
+            name: "L'Atomium",
+            danger: 10,
+            faction: "atome",
+            desc: "Les sphères brillent d'une lueur maladive la nuit. On dit que le Culte sacrifie des voyageurs dans l'ascenseur central.",
+            loot: ["tech", "rare_metal"],
+            links: ["laeken"]
+        }
+    },
+
+    enemies: [
+        { id: "rat", name: "Rat Géant", desc: "Taille d'un chien, yeux rouges purulents.", hp: 20, dmg: 4, xp: 5 },
+        { id: "looter", name: "Pillard Junkie", desc: "Couteau rouillé et regard fou.", hp: 35, dmg: 8, xp: 15 },
+        { id: "ghoul", name: "Irradié (Ghoule)", desc: "Peau fondue, rapide et affamé.", hp: 50, dmg: 12, xp: 25 },
+        { id: "drone", name: "Drone de Sécurité", desc: "Unité anti-émeute de l'UE défectueuse.", hp: 40, dmg: 15, xp: 30 },
+        { id: "soldier", name: "Déserteur Blindé", desc: "Ancien de la Garde, armure lourde.", hp: 80, dmg: 18, xp: 50 }
+    ],
+
+    dialogues: {
+        "merchant_boris": {
+            start: {
+                text: "Boris vous regarde derrière une grille en fer. 'Tu veux échanger ou tu veux des ennuis ? Ici on n'aime pas les curieux.'",
+                choices: [
+                    { txt: "Montrez-moi vos marchandises.", action: "trade" },
+                    { txt: "Que savez-vous sur la Garde Royale ?", goto: "info_garde" },
+                    { txt: "Rien, je pars.", action: "close" }
+                ]
+            },
+            info_garde: {
+                text: "'Ces fascistes ? Ils tirent sur tout ce qui bouge près du Parc. Si tu veux entrer, trouve un uniforme ou sois prêt à mourir.'",
+                choices: [
+                    { txt: "Merci du conseil.", goto: "start" }
+                ]
+            }
+        },
+        "doc_flesher": {
+            start: {
+                text: "Une odeur de formol. Un homme en tablier taché de sang essuie un scalpel. 'Tu as des organes à vendre ? Ou besoin d'une greffe ?'",
+                choices: [
+                    { txt: "J'ai besoin de soins.", action: "heal" },
+                    { txt: "Qui êtes-vous ?", goto: "who" },
+                    { txt: "Quitter.", action: "close" }
+                ]
+            },
+            who: {
+                text: "'Je suis celui qui recycle. Dans ce monde, rien ne se perd. Surtout pas la viande fraîche.' Il vous sourit avec trop de dents.",
+                choices: [{ txt: "Charmant...", goto: "start" }]
+            }
+        }
+    }
+};
+
+/* ------------------------------------------------------------------
+   MOTEUR DE JEU
+   ------------------------------------------------------------------ */
+const GAME = {
+    state: {
+        day: 1, hour: 8,
+        loc: "grand_place",
+        weather: "Pluie Acide",
+        player: {
+            hp: 100, maxHp: 100,
+            en: 100, san: 100,
+            xp: 0, lvl: 1,
+            inv: {}, equip: null,
+            reputation: { garde: 0, rats: 10, atome: -10, ue: 0 }
+        }
+    },
+
+    init() {
+        // Check save
+        const save = localStorage.getItem('bx_extended_save');
+        if (save) {
+            this.state = JSON.parse(save);
+            UI.log("Sauvegarde chargée.", "log-event");
+        } else {
+            // Starter items
+            this.addItem("knife", 1);
+            this.addItem("ration", 2);
+            this.addItem("water", 1);
+            UI.showModal("INTRO", `
+                <h2 style="color:var(--accent)">BRUXELLES CENDRES</h2>
+                <p>L'Europe est tombée. Bruxelles n'est plus qu'un cimetière de béton et de verre.</p>
+                <p>Vous vous réveillez sur la Grand-Place. La faim vous tenaille.</p>
+                <p>Votre but : Survivre. Trouver un abri. Comprendre.</p>
+                <button class="btn" onclick="UI.closeModal()">COMMENCER</button>
+            `);
+        }
+        UI.updateAll();
+    },
+
+    // --- TEMPS & CLIMAT ---
+    advanceTime(hours) {
+        this.state.hour += hours;
+        this.state.player.en -= (hours * 2);
+        
+        // Random weather change
+        if(Math.random() > 0.7) {
+            const weathers = ["Pluie Acide", "Brouillard Toxique", "Ciel Gris", "Orage Sec", "Vent du Nord"];
+            this.state.weather = weathers[Math.floor(Math.random() * weathers.length)];
+        }
+
+        // Cycle jour/nuit
+        if (this.state.hour >= 24) {
+            this.state.hour -= 24;
+            this.state.day++;
+            this.state.player.hp = Math.max(0, this.state.player.hp - 2); // Infection naturelle
+            UI.log("Un nouveau jour de misère commence.", "log-event");
+        }
+
+        // Survival check
+        if (this.state.player.en <= 0) {
+            this.state.player.hp -= 5;
+            UI.log("Vous mourrez de faim...", "log-combat");
+        }
+        if (this.state.player.hp <= 0) this.gameOver("Mort de faim/blessures");
+
+        this.save();
+        UI.updateAll();
+    },
+
+    // --- NAVIGATION & EXPLORATION ---
+    travel(destId) {
+        const dest = DB.locations[destId];
+        this.advanceTime(1);
+        this.state.loc = destId;
+        UI.log(`Arrivée à : ${dest.name}`, "log-event");
+        UI.nav('explore');
+        UI.updateAll();
+    },
+
+    explore() {
+        UI.shake();
+        this.advanceTime(1);
+        const loc = DB.locations[this.state.loc];
+        
+        // RNG Logic
+        const roll = Math.random() * 100;
+        const dangerChance = loc.danger * 8; // ex: danger 5 = 40% chance
+
+        if (roll < dangerChance) {
+            // COMBAT
+            COMBAT.start(loc.danger);
+        } else if (roll < dangerChance + 30) {
+            // LOOT
+            const item = loc.loot[Math.floor(Math.random() * loc.loot.length)];
+            const qty = Math.floor(Math.random() * 2) + 1;
+            this.addItem(item, qty);
+        } else {
+            // EVENT ATMOSPHERIQUE
+            const txt = loc.env ? loc.env[Math.floor(Math.random() * loc.env.length)] : "Le silence est pesant.";
+            UI.log(txt, "log-event");
+            // Chance to find minor item
+            if(Math.random() > 0.5) {
+                this.addItem("scrap", 1);
+            }
+        }
+    },
+
+    interact(npcId) {
+        const npc = DB.dialogues[npcId];
+        if(!npc) return;
+        DIALOGUE.start(npcId, "start");
+    },
+
+    // --- INVENTAIRE ---
+    addItem(id, qty) {
+        if (!this.state.player.inv[id]) this.state.player.inv[id] = 0;
+        this.state.player.inv[id] += qty;
+        UI.log(`Trouvé: ${DB.items[id].name} x${qty}`, "log-item");
+        UI.renderInv();
+    },
+
+    useItem(id) {
+        const item = DB.items[id];
+        if (item.type === "conso") {
+            if(item.eff.hp) this.state.player.hp = Math.min(this.state.player.maxHp, this.state.player.hp + item.eff.hp);
+            if(item.eff.en) this.state.player.en = Math.min(100, this.state.player.en + item.eff.en);
+            if(item.eff.san) this.state.player.san = Math.min(100, this.state.player.san + item.eff.san);
+            this.state.player.inv[id]--;
+            if(this.state.player.inv[id]<=0) delete this.state.player.inv[id];
+            UI.log(`Utilisé: ${item.name}`, "log-item");
+        } else if (item.type === "wep") {
+            this.state.player.equip = id;
+            UI.log(`Équipé: ${item.name}`, "log-item");
+        }
+        UI.updateAll();
+    },
+
+    save() { localStorage.setItem('bx_extended_save', JSON.stringify(this.state)); },
+    gameOver(reason) {
+        localStorage.removeItem('bx_extended_save');
+        UI.showModal("FIN DE PARTIE", `
+            <h2 style="color:#d64545">${reason.toUpperCase()}</h2>
+            <p>Bruxelles a eu raison de vous après ${this.state.day} jours.</p>
+            <button class="btn" onclick="location.reload()">RECOMMENCER</button>
+        `);
+    }
+};
+
+/* ------------------------------------------------------------------
+   SYSTÈME DE COMBAT
+   ------------------------------------------------------------------ */
+const COMBAT = {
+    active: false,
+    enemy: null,
+
+    start(danger) {
+        this.active = true;
+        // Pick enemy based on difficulty
+        const pool = DB.enemies.filter(e => (danger < 5 ? e.hp < 40 : true));
+        const template = pool[Math.floor(Math.random() * pool.length)];
+        this.enemy = { ...template, max: template.hp };
+        
+        UI.nav('combat');
+        document.getElementById('enemy-name').innerText = this.enemy.name;
+        document.getElementById('enemy-desc').innerText = this.enemy.desc;
+        document.getElementById('combat-log-display').innerHTML = "";
+        this.log(`Un ${this.enemy.name} surgit des ombres !`);
+    },
+
+    log(msg) {
+        const d = document.getElementById('combat-log-display');
+        d.innerHTML = `> ${msg}<br>` + d.innerHTML;
+    },
+
+    act(type) {
+        if (!this.active) return;
+        
+        // PLAYER TURN
+        const wep = GAME.state.player.equip ? DB.items[GAME.state.player.equip] : {name:"Mains nues", dmg:3, acc:95};
+        let dmg = wep.dmg;
+        let acc = wep.acc;
+
+        if(type === 'heavy') { dmg = Math.floor(dmg * 1.5); acc -= 25; }
+        if(type === 'flee') {
+            if(Math.random() > 0.5) {
+                UI.log("Fuite réussie !", "log-event");
+                this.end();
+                return;
+            } else {
+                this.log("Fuite ratée !");
+                this.enemyTurn();
+                return;
+            }
+        }
+        if(type === 'defend') {
+            this.log("Position défensive.");
+            this.enemyTurn(true);
+            return;
+        }
+
+        if(Math.random() * 100 < acc) {
+            // Hit
+            const actualDmg = Math.floor(dmg * (0.8 + Math.random() * 0.4));
+            this.enemy.hp -= actualDmg;
+            this.log(`Vous frappez (${wep.name}) : ${actualDmg} Dégâts.`);
+            UI.shake();
+        } else {
+            this.log("Vous manquez votre cible !");
+        }
+
+        if(this.enemy.hp <= 0) {
+            UI.log(`Ennemi vaincu ! +${this.enemy.xp} XP`, "log-combat");
+            GAME.state.player.xp += this.enemy.xp;
+            this.end();
+        } else {
+            setTimeout(() => this.enemyTurn(), 600);
+        }
+        this.updateUI();
+    },
+
+    enemyTurn(defending = false) {
+        if(!this.active || this.enemy.hp <= 0) return;
+        
+        let dmg = this.enemy.dmg * (0.8 + Math.random() * 0.4);
+        if(defending) dmg = Math.floor(dmg / 2);
+        
+        GAME.state.player.hp -= Math.floor(dmg);
+        this.log(`${this.enemy.name} attaque : -${Math.floor(dmg)} HP`);
+        
+        if(GAME.state.player.hp <= 0) GAME.gameOver("Tué au combat");
+        this.updateUI();
+    },
+
+    updateUI() {
+        const pct = (this.enemy.hp / this.enemy.max) * 100;
+        document.getElementById('enemy-hp').style.width = `${Math.max(0, pct)}%`;
+        UI.updateStats();
+    },
+
+    end() {
+        this.active = false;
+        setTimeout(() => UI.nav('explore'), 1000);
+    }
+};
+
+/* ------------------------------------------------------------------
+   DIALOGUE SYSTEM
+   ------------------------------------------------------------------ */
+const DIALOGUE = {
+    currentNpc: null,
+    currentNode: null,
+
+    start(npcId, nodeId) {
+        this.currentNpc = npcId;
+        const tree = DB.dialogues[npcId];
+        const node = tree[nodeId];
+        
+        let html = `
+            <h2 style="color:var(--accent)">${DB.locations[GAME.state.loc].name} - Interaction</h2>
+            <p style="margin: 20px 0; font-size: 14px; line-height: 1.6;">"${node.text}"</p>
+            <div class="action-grid">
+        `;
+
+        node.choices.forEach((c, idx) => {
+            html += `<button class="btn" onclick="DIALOGUE.select(${idx}, '${nodeId}')">${c.txt}</button>`;
+        });
+
+        html += `</div>`;
+        UI.showModal("DIALOGUE", html);
+    },
+
+    select(choiceIdx, nodeId) {
+        const choice = DB.dialogues[this.currentNpc][nodeId].choices[choiceIdx];
+        
+        if (choice.goto) {
+            this.start(this.currentNpc, choice.goto);
+        } else if (choice.action === "close") {
+            UI.closeModal();
+        } else if (choice.action === "heal") {
+            if (GAME.state.player.inv["scrap"] >= 5) {
+                GAME.state.player.inv["scrap"] -= 5;
+                GAME.state.player.hp = GAME.state.player.maxHp;
+                UI.log("Le docteur vous recoud. (-5 Ferraille)", "log-item");
+                UI.closeModal();
+                UI.updateAll();
+            } else {
+                UI.showModal("REFUS", "<p>'Pas de ferraille, pas de soins.' (Il faut 5 Ferrailles)</p><button class='btn' onclick='UI.closeModal()'>Partir</button>");
+            }
+        }
+    }
+};
+
+/* ------------------------------------------------------------------
+   INTERFACE UTILISATEUR
+   ------------------------------------------------------------------ */
+const UI = {
+    nav(screenId) {
+        if(COMBAT.active && screenId !== 'combat') return;
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(`screen-${screenId}`).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        // Simple logic for active tab highlight
+        const idx = ['explore', 'inventory', 'map', 'journal', 'craft'].indexOf(screenId);
+        if(idx > -1) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+
+        if(screenId === 'inventory') this.renderInv();
+        if(screenId === 'explore') this.renderLoc();
+        if(screenId === 'map') this.renderMap();
+        if(screenId === 'journal') this.renderJournal();
+    },
+
+    updateAll() {
+        this.updateStats();
+        this.renderLoc();
+        
+        document.getElementById('ui-time').innerText = `Jour ${GAME.state.day} • ${GAME.state.hour}:00`;
+        document.getElementById('ui-weather').innerText = GAME.state.weather;
+        document.getElementById('ui-loc').innerText = DB.locations[GAME.state.loc].name;
+    },
+
+    updateStats() {
+        const p = GAME.state.player;
+        document.getElementById('val-hp').innerText = Math.floor(p.hp);
+        document.getElementById('val-en').innerText = Math.floor(p.en);
+        document.getElementById('val-san').innerText = Math.floor(p.san);
+        document.getElementById('val-xp').innerText = 1 + Math.floor(p.xp/100);
+    },
+
+    renderLoc() {
+        const loc = DB.locations[GAME.state.loc];
+        document.getElementById('loc-header').innerHTML = `<h2 style="color:var(--text-main)">${loc.name} <span class="danger-tag">Danger ${loc.danger}</span></h2>`;
+        document.getElementById('loc-desc').innerText = loc.desc;
+
+        // Faction info
+        const f = loc.faction !== "none" ? DB.factions[loc.faction] : null;
+        const factionHtml = f ? `<div style="color:var(--accent); font-size:11px; margin-bottom:10px;">Territoire: ${f.name}</div>` : "";
+        document.getElementById('loc-events').innerHTML = factionHtml;
+
+        // Actions
+        let html = `<button class="btn" onclick="GAME.explore()"><strong>Explorer la zone</strong><small>-1h, -2 Énergie. Risqué.</small></button>`;
+        
+        // NPC
+        if(loc.npc) {
+            html += `<button class="btn" style="border-color:var(--rare)" onclick="GAME.interact('${loc.npc}')"><strong>Parler à un local</strong><small>Interaction</small></button>`;
+        }
+        
+        // Travel buttons (if visible immediately)
+        // loc.links.forEach(l => { ... }) - Better in map screen
+        
+        document.getElementById('explore-actions').innerHTML = html;
+    },
+
+    renderInv() {
+        const list = document.getElementById('inv-list');
+        list.innerHTML = '';
+        const p = GAME.state.player;
+        
+        document.getElementById('equip-weapon').innerText = p.equip ? DB.items[p.equip].name : "Mains nues";
+
+        for(let [id, qty] of Object.entries(p.inv)) {
+            const item = DB.items[id];
+            const div = document.createElement('div');
+            div.className = 'inv-item';
+            div.innerHTML = `<div class="inv-count">${qty}</div><strong>${item.name}</strong><br><span style="color:#666">${item.type}</span>`;
+            
+            div.onclick = () => GAME.useItem(id);
+            list.appendChild(div);
+        }
+    },
+
+    renderMap() {
+        const grid = document.getElementById('map-grid');
+        grid.innerHTML = '';
+        const current = DB.locations[GAME.state.loc];
+        
+        current.links.forEach(lid => {
+            const dest = DB.locations[lid];
+            grid.innerHTML += `<button class="btn" onclick="GAME.travel('${lid}')"><strong>${dest.name}</strong><small>Danger: ${dest.danger}</small></button>`;
+        });
+    },
+
+    renderJournal() {
+        const j = document.getElementById('journal-list');
+        j.innerHTML = `<p>Jour ${GAME.state.day} - Je suis toujours en vie.</p>`;
+        
+        const f = document.getElementById('faction-list');
+        f.innerHTML = '';
+        for(let [fid, val] of Object.entries(GAME.state.player.reputation)) {
+            const fac = DB.factions[fid];
+            if(fac) {
+                let status = "Neutre";
+                if(val > 20) status = "Allié";
+                if(val < -5) status = "Hostile";
+                f.innerHTML += `<div style="margin-bottom:5px;"><strong>${fac.name}</strong>: ${status} (${val})</div>`;
+            }
+        }
+    },
+
+    log(msg, type="") {
+        const l = document.getElementById('main-log');
+        const d = document.createElement('div');
+        d.className = `log-entry ${type}`;
+        d.innerText = `[${GAME.state.hour}h] ${msg}`;
+        l.prepend(d);
+    },
+
+    showModal(title, content) {
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('modal-content').innerHTML = content;
+    },
+    closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    },
+    shake() {
+        document.body.classList.add('shake');
+        setTimeout(()=>document.body.classList.remove('shake'), 400);
+    }
+};
+
+window.onload = () => GAME.init();
+
+</script>
+</body>
+</html>
