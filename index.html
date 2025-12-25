@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRUXELLES CENDRES - Survival RPG</title>
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --text-main: #c0c0c0;
+            --text-highlight: #a89f91; /* Beige sale */
+            --accent-danger: #ff4444; /* Rouge vif pour danger immédiat */
+            --accent-blood: #8a0e0e;
+            --accent-success: #2e8b57;
+            --clan-elus: #ffd700; /* Or pour les Élus */
+            --clan-ressuscites: #ff00ff; /* Magenta agressif pour Ressuscités */
+            --clan-commune: #4caf50; /* Vert pour la Commune */
+            --font-main: 'Courier New', Courier, monospace;
+            --border-style: 2px solid #333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* Container principal */
+        #game-container {
+            width: 1000px;
+            height: 90vh;
+            display: grid;
+            grid-template-columns: 250px 1fr 250px;
+            grid-template-rows: 60px 1fr 200px;
+            gap: 10px;
+            border: var(--border-style);
+            background-color: #111;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* Header */
+        header {
+            grid-column: 1 / -1;
+            border-bottom: var(--border-style);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            background: #1a1a1a;
+        }
+        h1 { font-size: 1.5rem; color: #fff; text-transform: uppercase; letter-spacing: 2px; }
+        .day-counter { color: var(--accent-danger); font-weight: bold; }
+
+        /* Panneaux latéraux */
+        .panel {
+            padding: 15px;
+            background: #141414;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        .left-panel { border-right: var(--border-style); }
+        .right-panel { border-left: var(--border-style); }
+
+        .stat-box { margin-bottom: 15px; }
+        .stat-label { font-size: 0.8rem; color: #666; display: block; margin-bottom: 5px; }
+        .progress-bar {
+            height: 10px;
+            background: #333;
+            width: 100%;
+            position: relative;
+        }
+        .progress-fill { height: 100%; transition: width 0.3s; }
+        .health-fill { background-color: var(--accent-blood); }
+        .hunger-fill { background-color: #d2691e; }
+        .sanity-fill { background-color: #4682b4; }
+
+        /* Zone Centrale */
+        .main-display {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #scene-visual {
+            height: 150px;
+            background: #000;
+            border-bottom: var(--border-style);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            font-size: 0.8rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #log-container {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            scrollbar-width: thin;
+            scrollbar-color: #444 #111;
+        }
+        .log-entry { margin-bottom: 12px; border-left: 2px solid transparent; padding-left: 10px; }
+        .log-entry.new { animation: fadeIn 0.5s; border-left-color: var(--text-highlight); }
+        
+        /* Couleurs contextuelles */
+        .log-danger { color: var(--accent-danger); }
+        .log-loot { color: var(--accent-success); }
+        .log-info { color: #888; }
+        .tag-elu { color: var(--clan-elus); font-weight: bold; }
+        .tag-ressuscite { color: var(--clan-ressuscites); font-weight: bold; }
+        .tag-commune { color: var(--clan-commune); font-weight: bold; }
+
+        /* Zone d'actions */
+        #actions-container {
+            grid-column: 1 / -1;
+            border-top: var(--border-style);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            background: #1a1a1a;
+        }
+
+        button {
+            background: #000;
+            border: 1px solid #444;
+            color: var(--text-highlight);
+            font-family: var(--font-main);
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+        button:hover:not(:disabled) {
+            background: #222;
+            border-color: #fff;
+            color: #fff;
+        }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+
+    <div id="game-container">
+        <header>
+            <h1>Bruxelles Cendres</h1>
+            <div class="day-counter">JOUR <span id="day-display">1</span></div>
+        </header>
+
+        <div class="panel left-panel">
+            <h3>ÉTAT VITAL</h3>
+            <div class="stat-box">
+                <span class="stat-label">SANTÉ PHYSIQUE</span>
+                <div class="progress-bar"><div id="hp-bar" class="progress-fill health-fill" style="width: 100%;"></div></div>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">FAIM</span>
+                <div class="progress-bar"><div id="hunger-bar" class="progress-fill hunger-fill" style="width: 0%;"></div></div>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">SANTÉ MENTALE</span>
+                <div class="progress-bar"><div id="sanity-bar" class="progress-fill sanity-fill" style="width: 100%;"></div></div>
+            </div>
+            <div style="margin-top:auto">
+                <span class="stat-label">ZONE ACTUELLE</span>
+                <strong id="location-display" style="color:#fff; font-size:1.0rem;">Inconnu</strong>
+            </div>
+        </div>
+
+        <div class="main-display">
+            <div id="scene-visual">
+                <pre id="ascii-art" style="font-size: 10px; line-height: 10px; opacity: 0.5; text-align:center;">
+   _   _   _   _   _
+  | |_| |_| |_| |_| |
+  |_|_|_|_|_|_|_|_|_|
+    BRUXELLES 2035
+  |_________________|
+                </pre>
+            </div>
+            <div id="log-container">
+                <div class="log-entry">Le Fléau Gris a transformé la capitale en nécropole.</div>
+                <div class="log-entry">Vous êtes seul. Les 19 communes sont devenues des territoires de guerre.</div>
+            </div>
+        </div>
+
+        <div class="panel right-panel">
+            <h3>SAC À DOS</h3>
+            <ul id="inventory-list" style="list-style: none; padding: 0; font-size: 0.85rem;">
+                <li>(Vide)</li>
+            </ul>
+            <div style="margin-top:auto; border-top: 1px solid #333; padding-top:10px;">
+                <h3>INFO CLANS</h3>
+                <small class="tag-ressuscite">Les Ressuscités</small><br>
+                <small class="tag-elu">Les Élus (Fanatiques)</small><br>
+                <small class="tag-commune">La Commune (Ixelles)</small>
+            </div>
+        </div>
+
+        <div id="actions-container">
+            <button onclick="game.action('explore')">Fouiller la zone</button>
+            <button onclick="game.action('travel')">Changer de Commune</button>
+            <button onclick="game.action('rest')">Manger & Dormir</button>
+            <button onclick="game.action('social')">Observer / Écouter</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * DONNÉES DU MONDE : LES 19 COMMUNES
+ * Danger: 1 (Sûr) à 10 (Mortel)
+ * Loot: 1 (Vide) à 10 (Abondant)
+ */
+const LOCATIONS = {
+    "anderlecht": { name: "Anderlecht", danger: 9, loot: 5, desc: "Territoire des Pillards des Abattoirs. Ça sent le sang séché et la viande avariée." },
+    "auderghem": { name: "Auderghem", danger: 3, loot: 3, desc: "Zones résidentielles calmes. La forêt de Soignes grignote les maisons." },
+    "berchem": { name: "Berchem-Ste-Agathe", danger: 4, loot: 4, desc: "Le 'village' au nord. Quelques maisons barricadées, relativement calme." },
+    "bruxelles": { name: "Bruxelles-Ville", danger: 10, loot: 9, desc: "Zone de Guerre Totale. Les Élus (Palais de Justice) affrontent les Ressuscités." },
+    "etterbeek": { name: "Etterbeek", danger: 5, loot: 5, desc: "Proche des institutions européennes en ruine. Des snipers rôdent sur les toits." },
+    "evere": { name: "Evere", danger: 4, loot: 4, desc: "Le grand cimetière est silencieux. L'OTAN est un cratère radioactif." },
+    "forest": { name: "Forest", danger: 6, loot: 5, desc: "L'usine Audi est un labyrinthe de métal. La salle de concert 'Forest National' est un nid de Rôdeurs." },
+    "ganshoren": { name: "Ganshoren", danger: 3, loot: 2, desc: "Des marais et des immeubles gris. Peu de ressources, peu d'ennemis." },
+    "ixelles": { name: "Ixelles", danger: 4, loot: 7, desc: "Territoire de la Commune (ULB). Des barrages filtrent les entrées. Un semblant de civilisation." },
+    "jette": { name: "Jette", danger: 5, loot: 6, desc: "L'hôpital Brugmann a été pillé il y a longtemps, mais il reste des seringues." },
+    "koekelberg": { name: "Koekelberg", danger: 5, loot: 3, desc: "La Basilique domine l'horizon, sombre et vide. Un bon point d'observation." },
+    "molenbeek": { name: "Molenbeek-St-Jean", danger: 7, loot: 6, desc: "Le canal est pollué. Les zones industrielles cachent des ateliers de fortune." },
+    "stgilles": { name: "Saint-Gilles", danger: 6, loot: 5, desc: "Dédale de rues étroites. Parfait pour les embuscades urbaines." },
+    "stjosse": { name: "Saint-Josse", danger: 7, loot: 4, desc: "La plus petite commune, très dense. Impossible de traverser sans être vu." },
+    "schaerbeek": { name: "Schaerbeek", danger: 6, loot: 6, desc: "La Cité des Ânes. Le parc Josaphat est devenu une jungle dense." },
+    "uccle": { name: "Uccle", danger: 2, loot: 8, desc: "Villas de riches abandonnées. Le butin est bon, mais c'est loin de tout." },
+    "watermael": { name: "Watermael-Boitsfort", danger: 2, loot: 2, desc: "Presque entièrement repris par la forêt. On y chasse le cerf et le rôdeur." },
+    "woluwesl": { name: "Woluwe-St-Lambert", danger: 4, loot: 6, desc: "L'hôpital Saint-Luc est une zone interdite (bio-hazard). Le shopping center est effondré." },
+    "woluwesp": { name: "Woluwe-St-Pierre", danger: 3, loot: 7, desc: "Grandes avenues, ambassades pillées. Des chiens sauvages patrouillent." }
+};
+
+const ITEMS = [
+    "Munitions 9mm", "Antibiotiques", "Conserve de raviolis", "Eau (bouteille)", 
+    "Batterie AA", "Couteau de chasse", "Bandages sales", "Alcool pur", "Carte de la STIB"
+];
+
+// Événements étendus avec les clans
+const EVENTS = [
+    // Générique
+    { text: "Un Rôdeur sort d'une carcasse de voiture !", type: "danger", dmg: 10, mental: 5 },
+    { text: "Vous trouvez un sac à dos abandonné.", type: "loot", item: true },
+    { text: "Pluie acide. La peau vous brûle.", type: "danger", dmg: 5, mental: 10 },
+    
+    // Les Élus (Fanatiques religieux)
+    { text: "Une procession des <span class='tag-elu'>Élus</span> passe. Ils brûlent un 'impur' vivant.", type: "clan", mental: 20 },
+    { text: "Un prêtre des <span class='tag-elu'>Élus</span> vous repère : 'Le feu te purifiera !'", type: "danger", dmg: 20, mental: 5 },
+    
+    // Les Ressuscités (Anarchistes violents)
+    { text: "Embuscade ! Des <span class='tag-ressuscite'>Ressuscités</span> vous tirent dessus depuis un toit.", type: "danger", dmg: 25, mental: 10 },
+    { text: "Vous trouvez un cadavre mutilé, signature des <span class='tag-ressuscite'>Ressuscités</span>.", type: "info", mental: 10 },
+    
+    // La Commune (Pacifiques/Isolationnistes)
+    { text: "Des guetteurs de <span class='tag-commune'>La Commune</span> vous observent aux jumelles.", type: "info", mental: 0 },
+    { text: "Vous trouvez une cache de vivres laissée par <span class='tag-commune'>La Commune</span>.", type: "loot", item: true }
+];
+
+const GAME_STATE = {
+    day: 1,
+    hp: 100,
+    hunger: 25,
+    sanity: 100,
+    location: "bruxelles", // Départ difficile
+    inventory: ["Couteau rouillé", "Eau (1)"],
+    gameOver: false
+};
+
+const game = {
+    init: function() {
+        this.updateUI();
+        this.log("Vous êtes sur la Grand-Place de Bruxelles.", "new");
+        this.log(LOCATIONS[GAME_STATE.location].desc);
+    },
+
+    log: function(text, cssClass = "") {
+        const container = document.getElementById('log-container');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${cssClass}`;
+        entry.innerHTML = `> ${text}`;
+        container.appendChild(entry);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    action: function(type) {
+        if (GAME_STATE.gameOver) return;
+
+        GAME_STATE.hunger += 4; // Faim passive
+        if (GAME_STATE.hunger >= 100) { this.takeDamage(100); this.log("VOTRE ESTOMAC SE DEVORE LUI-MÊME.", "log-danger"); return; }
+        
+        switch(type) {
+            case 'explore': this.explore(); break;
+            case 'travel': this.travel(); break;
+            case 'rest': this.rest(); break;
+            case 'social': this.social(); break;
+        }
+        
+        this.checkStatus();
+        this.updateUI();
+    },
+
+    explore: function() {
+        this.log(`Fouille de : ${LOCATIONS[GAME_STATE.location].name}...`);
+        
+        const loc = LOCATIONS[GAME_STATE.location];
+        // Formule : Danger vs Chance
+        const roll = Math.random() * 10;
+
+        if (roll < loc.danger / 2) {
+            // Mauvaise rencontre (pionce dans la liste EVENTS)
+            const evt = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+            this.log(evt.text, evt.type === 'danger' ? 'log-danger' : '');
+            if(evt.dmg) this.takeDamage(evt.dmg);
+            if(evt.mental) GAME_STATE.sanity -= evt.mental;
+            if(evt.item) {
+                const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+                GAME_STATE.inventory.push(item);
+                this.log(`Chance ! Vous récupérez : ${item}`, "log-loot");
+            }
+        } else if (roll > (10 - loc.loot)) {
+            // Loot réussi
+            const item = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+            GAME_STATE.inventory.push(item);
+            this.log(`Vous trouvez : ${item}`, "log-loot");
+        } else {
+            this.log("Rien... juste des cendres et du vent.", "log-info");
+        }
+    },
+
+    travel: function() {
+        // Sélection aléatoire d'une nouvelle commune (simulation de déplacement)
+        const keys = Object.keys(LOCATIONS);
+        let newLoc;
+        do {
+            newLoc = keys[Math.floor(Math.random() * keys.length)];
+        } while (newLoc === GAME_STATE.location);
+
+        GAME_STATE.hunger += 10;
+        GAME_STATE.location = newLoc;
+        this.log(`Voyage vers... ${LOCATIONS[newLoc].name}`, "new");
+        this.log(LOCATIONS[newLoc].desc, "log-info");
+    },
+
+    rest: function() {
+        // Manger
+        const foodIndex = GAME_STATE.inventory.findIndex(i => i.toLowerCase().includes("conserve") || i.toLowerCase().includes("eau"));
+        
+        if (foodIndex > -1) {
+            const item = GAME_STATE.inventory[foodIndex];
+            GAME_STATE.inventory.splice(foodIndex, 1);
+            GAME_STATE.hunger = Math.max(0, GAME_STATE.hunger - 40);
+            GAME_STATE.hp = Math.min(100, GAME_STATE.hp + 15);
+            GAME_STATE.sanity = Math.min(100, GAME_STATE.sanity + 5);
+            this.log(`Vous consommez ${item} et dormez.`, "log-loot");
+        } else {
+            GAME_STATE.hp = Math.min(100, GAME_STATE.hp + 5);
+            GAME_STATE.hunger += 10;
+            GAME_STATE.sanity -= 5;
+            this.log("Dormir le ventre vide est un cauchemar.", "log-danger");
+        }
+        GAME_STATE.day++;
+    },
+
+    social: function() {
+        // Dépend de la zone
+        const loc = LOCATIONS[GAME_STATE.location];
+        if (loc.name.includes("Ixelles")) {
+             this.log("Un membre de la <span class='tag-commune'>Commune</span> vous propose un troc (Bientôt dispo).", "log-info");
+        } else if (loc.name.includes("Bruxelles")) {
+             this.log("Les cris des torturés par les <span class='tag-elu'>Élus</span> résonnent.", "log-danger");
+             GAME_STATE.sanity -= 10;
+        } else {
+             this.log("Vous parlez aux murs pour vérifier que vous existez encore.", "log-info");
+             GAME_STATE.sanity += 2;
+        }
+    },
+
+    takeDamage: function(amount) {
+        GAME_STATE.hp -= amount;
+        this.log(`- ${amount} PV`, "log-danger");
+    },
+
+    checkStatus: function() {
+        if (GAME_STATE.hp <= 0) this.triggerGameOver("Votre corps a lâché.");
+        if (GAME_STATE.sanity <= 0) this.triggerGameOver("La folie vous a pris. Vous rejoignez la Horde.");
+    },
+
+    triggerGameOver: function(reason) {
+        GAME_STATE.gameOver = true;
+        alert(`FIN DE PARTIE\nCause : ${reason}\nJours survécus : ${GAME_STATE.day}`);
+        location.reload();
+    },
+
+    updateUI: function() {
+        // Barres
+        document.getElementById('hp-bar').style.width = GAME_STATE.hp + "%";
+        document.getElementById('hunger-bar').style.width = GAME_STATE.hunger + "%";
+        document.getElementById('sanity-bar').style.width = GAME_STATE.sanity + "%";
+        
+        // Textes
+        document.getElementById('day-display').innerText = GAME_STATE.day;
+        document.getElementById('location-display').innerText = LOCATIONS[GAME_STATE.location].name;
+        
+        // Inventaire
+        const invList = document.getElementById('inventory-list');
+        invList.innerHTML = "";
+        GAME_STATE.inventory.forEach(item => {
+            const li = document.createElement('li');
+            li.innerText = `- ${item}`;
+            invList.appendChild(li);
+        });
+    }
+};
+
+game.init();
+</script>
+</body>
+</html>
