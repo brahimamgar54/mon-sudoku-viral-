@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bruxelles Cendres</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #000;
+            color: #c0c0c0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            padding: 10px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .screen {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* ÉCRAN DE CRÉATION */
+        #creation-screen {
+            background: #111;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-y: auto;
+        }
+
+        .character-option {
+            background: #222;
+            border: 2px solid #444;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .character-option:hover,
+        .character-option.selected {
+            border-color: #a89f91;
+            background: #2a2a2a;
+        }
+
+        /* ÉCRAN DE JEU */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #1a1a1a;
+            border-bottom: 2px solid #333;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+            padding: 10px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+
+        .stat {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .stat-bar {
+            height: 8px;
+            background: #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .health { background: #8a0e0e; }
+        .hunger { background: #d2691e; }
+        .thirst { background: #1e90ff; }
+        .sanity { background: #4682b4; }
+
+        .scene-container {
+            flex: 1;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .scene-title {
+            padding: 10px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            font-weight: bold;
+        }
+
+        .scene-description {
+            padding: 15px;
+            font-size: 13px;
+            line-height: 1.5;
+            height: 150px;
+            overflow-y: auto;
+        }
+
+        .pnj-present {
+            padding: 10px;
+            background: #222;
+            margin: 5px;
+            border-radius: 3px;
+            border-left: 3px solid #a89f91;
+            font-size: 12px;
+        }
+
+        .pnj-present .tag {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .tag-elu { color: #ffd700; }
+        .tag-commune { color: #4caf50; }
+        .tag-ressuscite { color: #ff00ff; }
+        .tag-marchand { color: #6495ed; }
+        .tag-pillard { color: #ff6347; }
+        .tag-solitaire { color: #fff; }
+
+        /* ZONE DE DIALOGUE/ACTIONS */
+        .dialogue-container {
+            background: #1a1a1a;
+            border-top: 2px solid #333;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+
+        .dialogue-text {
+            padding: 10px;
+            background: #222;
+            border-radius: 5px;
+            border-left: 3px solid #a89f91;
+            margin-bottom: 10px;
+        }
+
+        .dialogue-speaker {
+            font-weight: bold;
+            color: #a89f91;
+            margin-bottom: 5px;
+        }
+
+        .choices-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .choice-btn {
+            background: #222;
+            border: 1px solid #444;
+            color: #c0c0c0;
+            padding: 12px;
+            text-align: left;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .choice-btn:hover,
+        .choice-btn:active {
+            background: #2a2a2a;
+            border-color: #a89f91;
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ÉCRAN D'INVENTAIRE */
+        #inventory-screen {
+            background: #111;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .item-card {
+            background: #222;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .item-type-food { border-color: #4caf50; }
+        .item-type-weapon { border-color: #ff4444; }
+        .item-type-medical { border-color: #ff66ff; }
+        .item-type-tool { border-color: #ffd700; }
+
+        /* ÉCRAN DE VOYAGE */
+        #travel-screen {
+            background: #111;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .location-card {
+            background: #222;
+            border: 2px solid #444;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .location-card:hover {
+            border-color: #a89f91;
+        }
+
+        .location-danger {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+
+        .danger-low { background: #2e8b57; }
+        .danger-medium { background: #d2691e; }
+        .danger-high { background: #ff4444; }
+
+        /* BOUTONS D'ACTION */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 10px;
+            background: #1a1a1a;
+            border-top: 2px solid #333;
+        }
+
+        .action-btn {
+            background: #222;
+            border: 1px solid #444;
+            color: #c0c0c0;
+            padding: 15px;
+            text-align: center;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .action-btn:hover,
+        .action-btn:active {
+            background: #2a2a2a;
+            border-color: #a89f91;
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* SCANLINES EFFECT */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 50%,
+                rgba(0, 0, 0, 0.1) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            body {
+                font-size: 13px;
+                padding: 5px;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .inventory-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            }
+        }
+
+        /* ANIMATIONS */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="scanlines"></div>
+
+    <!-- ÉCRAN DE CRÉATION -->
+    <div id="creation-screen" class="screen active">
+        <h2 style="text-align: center; margin-bottom: 20px; color: #a89f91;">BRUXELLES CENDRES</h2>
+        <p style="margin-bottom: 20px; text-align: center;">Qui étiez-vous avant l'effondrement ?</p>
+        
+        <div class="character-option" onclick="selectBackground('medecin')">
+            <strong>Médecin</strong><br>
+            <small>Compétences médicales, respecté mais peu combatif</small>
+        </div>
+        
+        <div class="character-option" onclick="selectBackground('soldat')">
+            <strong>Militaire</strong><br>
+            <small>Bon en combat, méfiance envers les civils</small>
+        </div>
+        
+        <div class="character-option" onclick="selectBackground('politique')">
+            <strong>Politique</strong><br>
+            <small>Excellente négociation, détesté par certains groupes</small>
+        </div>
+        
+        <div class="character-option" onclick="selectBackground('criminel')">
+            <strong>Criminel</strong><br>
+            <small>Discret, bon en survie urbaine, réputation négative</small>
+        </div>
+        
+        <div class="character-option" onclick="selectBackground('ouvrier')">
+            <strong>Ouvrier</strong><br>
+            <small>Robuste, bon avec les outils, équilibré</small>
+        </div>
+        
+        <input type="text" id="player-name" placeholder="Votre nom" style="
+            width: 100%;
+            padding: 15px;
+            margin: 20px 0;
+            background: #222;
+            border: 2px solid #444;
+            color: #c0c0c0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        ">
+        
+        <button onclick="startGame()" style="
+            width: 100%;
+            padding: 15px;
+            background: #a89f91;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+        ">
+            COMMENCER LA SURVIE
+        </button>
+    </div>
+
+    <!-- ÉCRAN PRINCIPAL DE JEU -->
+    <div id="game-screen" class="screen">
+        <div class="header">
+            <div>
+                <strong id="location-name">Bruxelles-Ville</strong><br>
+                <small id="day-counter">Jour 1 • 09:00</small>
+            </div>
+            <button onclick="showScreen('inventory')" style="
+                background: #333;
+                border: 1px solid #444;
+                color: #c0c0c0;
+                padding: 8px 15px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-family: 'Courier New', monospace;
+            ">
+                SAC
+            </button>
+        </div>
+        
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-label">Santé</span>
+                <div class="stat-bar">
+                    <div id="health-bar" class="stat-fill health" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Faim</span>
+                <div class="stat-bar">
+                    <div id="hunger-bar" class="stat-fill hunger" style="width: 25%"></div>
+                </div>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Soif</span>
+                <div class="stat-bar">
+                    <div id="thirst-bar" class="stat-fill thirst" style="width: 30%"></div>
+                </div>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Santé Mentale</span>
+                <div class="stat-bar">
+                    <div id="sanity-bar" class="stat-fill sanity" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="scene-container">
+            <div class="scene-title" id="scene-title">
+                Grand-Place de Bruxelles
+            </div>
+            <div class="scene-description" id="scene-description">
+                La place est déserte, jonchée de débris. La statue de l'Hôtel de Ville est mutilée. 
+                Au loin, des cris déchirent le silence.
+            </div>
+            
+            <div id="pnj-list">
+                <!-- PNJs seront ajoutés ici dynamiquement -->
+            </div>
+        </div>
+        
+        <div class="dialogue-container">
+            <div id="dialogue-text">
+                Que voulez-vous faire ?
+            </div>
+            
+            <div class="choices-container" id="choices-container">
+                <!-- Les choix seront ajoutés ici dynamiquement -->
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="action-btn" onclick="openTravel()">VOYAGER</button>
+            <button class="action-btn" onclick="openInventory()">INVENTAIRE</button>
+        </div>
+    </div>
+
+    <!-- ÉCRAN D'INVENTAIRE -->
+    <div id="inventory-screen" class="screen">
+        <h2 style="margin-bottom: 20px;">INVENTAIRE</h2>
+        <div style="margin-bottom: 15px;">
+            <small>Poids : <span id="current-weight">0</span> / <span id="max-weight">25</span> kg</small>
+        </div>
+        <div class="inventory-grid" id="inventory-items">
+            <!-- Items seront ajoutés ici -->
+        </div>
+        <button onclick="showScreen('game')" style="
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: #333;
+            color: #c0c0c0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        ">
+            RETOUR
+        </button>
+    </div>
+
+    <!-- ÉCRAN DE VOYAGE -->
+    <div id="travel-screen" class="screen">
+        <h2 style="margin-bottom: 20px;">CHOISIR UNE DESTINATION</h2>
+        <div id="locations-list">
+            <!-- Lieux seront ajoutés ici -->
+        </div>
+        <button onclick="showScreen('game')" style="
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            background: #333;
+            color: #c0c0c0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        ">
+            RETOUR
+        </button>
+    </div>
+
+<script>
+// DONNÉES DU JEU
+const GAME = {
+    player: {
+        name: "",
+        background: "",
+        reputation: {
+            ressuscites: 0,
+            elus: 0,
+            commune: 0,
+            marchands: 0,
+            pillards: 0
+        }
+    },
+    
+    state: {
+        day: 1,
+        time: 9,
+        health: 100,
+        hunger: 25,
+        thirst: 30,
+        sanity: 100,
+        infection: 0,
+        location: "bruxelles",
+        inventory: [],
+        knownLocations: ["bruxelles", "ixelles"],
+        currentPNJs: [],
+        gameOver: false
+    },
+    
+    // Toutes les communes de Bruxelles
+    locations: {
+        "anderlecht": {
+            name: "Anderlecht",
+            danger: 9,
+            description: "Territoire des Pillards des Abattoirs. L'odeur du sang séché est insupportable.",
+            clans: ["pillards"],
+            special: "Usine d'abattage abandonnée"
+        },
+        "bruxelles": {
+            name: "Bruxelles-Ville",
+            danger: 10,
+            description: "Zone de guerre totale entre les Élus et les Ressuscités. Les bâtiments historiques sont en ruines.",
+            clans: ["elu", "ressuscite"],
+            special: "Grand-Place, Palais de Justice"
+        },
+        "ixelles": {
+            name: "Ixelles",
+            danger: 4,
+            description: "Base de la Commune. Des jardins communautaires et des barricades bien entretenues.",
+            clans: ["commune"],
+            special: "Campus ULB/VUB"
+        },
+        "uccle": {
+            name: "Uccle",
+            danger: 2,
+            description: "Villas bourgeoises pillées. Relativement calme mais isolé.",
+            clans: [],
+            special: "Villas abandonnées"
+        },
+        "schaerbeek": {
+            name: "Schaerbeek",
+            danger: 6,
+            description: "Le Parc Josaphat est une jungle urbaine dangereuse mais riche en ressources.",
+            clans: [],
+            special: "Parc Josaphat"
+        },
+        "evere": {
+            name: "Evere",
+            danger: 4,
+            description: "Le cimetière est sinistrement silencieux. L'ancienne base OTAN est radioactive.",
+            clans: [],
+            special: "Cimetière de Bruxelles"
+        },
+        "forest": {
+            name: "Forest",
+            danger: 6,
+            description: "L'usine Audi est un labyrinthe de métal rouillé. Parfait pour se cacher.",
+            clans: [],
+            special: "Forest National"
+        },
+        "molenbeek": {
+            name: "Molenbeek-St-Jean",
+            danger: 7,
+            description: "Le canal est pollué de déchets toxiques. Des ateliers clandestins y opèrent.",
+            clans: [],
+            special: "Canal de Bruxelles"
+        }
+    },
+    
+    // Items avec poids et effets
+    items: {
+        "Couteau rouillé": { type: "weapon", weight: 0.5 },
+        "Pistolet 9mm": { type: "weapon", weight: 1 },
+        "Conserve de raviolis": { type: "food", weight: 0.4 },
+        "Eau (bouteille)": { type: "drink", weight: 0.5 },
+        "Bandages": { type: "medical", weight: 0.2 },
+        "Antibiotiques": { type: "medical", weight: 0.1 },
+        "Lampe torche": { type: "tool", weight: 0.3 },
+        "Clés de voiture": { type: "key", weight: 0.1 },
+        "Morceau de métal": { type: "resource", weight: 0.5 }
+    },
+    
+    // PNJ avec dialogues
+    pnjs: {
+        "leo": {
+            name: "Léo",
+            clan: "solitaire",
+            locations: ["ixelles"],
+            story: "Étudiant en médecine qui cherche des médicaments pour sa sœur malade.",
+            dialogues: {
+                initial: "Vous... vous n'êtes pas un Élu ? Je cherche des antibiotiques à l'hôpital Brugmann.",
+                options: [
+                    {
+                        text: "Je peux vous aider à trouver des médicaments.",
+                        effect: { trust: 10, reputation: { commune: 5 } },
+                        next: "Merci ! Prenez ces bandages, ça pourrait vous être utile.",
+                        items: ["Bandages"]
+                    },
+                    {
+                        text: "Donne-moi ce que tu as et pars.",
+                        effect: { trust: -30, sanity: -10 },
+                        next: "S'il vous plaît... ne me faites pas de mal...",
+                        combat: true
+                    },
+                    {
+                        text: "Désolé, je dois y aller.",
+                        effect: { trust: 0 },
+                        next: "Je comprends... bonne chance."
+                    }
+                ]
+            }
+        },
+        
+        "frere_mathias": {
+            name: "Frère Mathias",
+            clan: "elu",
+            locations: ["bruxelles"],
+            story: "Ex-prêtre fanatique qui croit que le Fléau est un châtiment divin.",
+            dialogues: {
+                initial: "L'impur s'approche du sanctuaire ! Le feu purifiera votre âme !",
+                options: [
+                    {
+                        text: "Je ne suis pas infecté, je cherche refuge.",
+                        effect: { trust: 5, reputation: { elus: 5 } },
+                        next: "Seul Dieu en jugera. Prouvez votre pureté en tuant un Ressuscité."
+                    },
+                    {
+                        text: "Votre dieu est mort comme tous les autres.",
+                        effect: { trust: -50, combat: true },
+                        next: "Blasphème ! Saints guerriers, éliminez cette abomination !"
+                    },
+                    {
+                        text: "Je vais partir en paix.",
+                        effect: { trust: -10 },
+                        next: "Fuyez, impur ! Que Dieu ait pitié de votre âme."
+                    }
+                ]
+            }
+        },
+        
+        "thomas": {
+            name: "Thomas",
+            clan: "commune",
+            locations: ["ixelles"],
+            story: "Ingénieur qui maintient les systèmes de la Commune.",
+            dialogues: {
+                initial: "Salut ! Vous êtes nouveau ? La Commune cherche des compétences utiles.",
+                options: [
+                    {
+                        text: "Qu'est-ce que la Commune propose ?",
+                        effect: { trust: 10, reputation: { commune: 10 } },
+                        next: "Nourriture, sécurité, communauté. En échange, vous contribuez selon vos capacités."
+                    },
+                    {
+                        text: "Je préfère rester indépendant.",
+                        effect: { trust: -5 },
+                        next: "Compréhensible. Mais sachez que seul, on ne survit pas longtemps ici."
+                    },
+                    {
+                        text: "J'ai entendu parler de vos réserves...",
+                        effect: { trust: -20, combat: true },
+                        next: "Ne vous approchez pas ! Les gardes !"
+                    }
+                ]
+            }
+        }
+    },
+    
+    // Événements aléatoires par localisation
+    events: {
+        "bruxelles": [
+            "Des cris de torture résonnent depuis le Palais de Justice.",
+            "Vous voyez les Éls brûler un 'impur' sur la Grand-Place.",
+            "Une patrouille de Ressuscités passe, évitez-les !"
+        ],
+        "ixelles": [
+            "Vous voyez des membres de la Commune cultiver des légumes.",
+            "Un guetteur vous observe depuis un bâtiment.",
+            "Le marché communautaire est en activité."
+        ],
+        "anderlecht": [
+            "L'odeur de viande pourrie est insupportable.",
+            "Vous entendez des cris provenant des abattoirs.",
+            "Des Pillards rôdent, cherchant des proies."
+        ]
+    },
+    
+    // Initialisation
+    init() {
+        // Charger la sauvegarde si elle existe
+        this.loadSave();
+        
+        // Mettre à jour l'interface
+        this.updateUI();
+        
+        // Générer les PNJ présents
+        this.generatePNJs();
+        
+        // Afficher l'événement initial
+        this.showEvent();
+    },
+    
+    // Sauvegarde
+    saveGame() {
+        const save = {
+            player: this.player,
+            state: this.state
+        };
+        localStorage.setItem('bruxelles_cendres_save', JSON.stringify(save));
+    },
+    
+    loadSave() {
+        const save = localStorage.getItem('bruxelles_cendres_save');
+        if (save) {
+            const data = JSON.parse(save);
+            this.player = data.player;
+            this.state = data.state;
+        }
+    },
+    
+    // Interface
+    updateUI() {
+        // Mettre à jour les barres de statut
+        document.getElementById('health-bar').style.width = this.state.health + '%';
+        document.getElementById('hunger-bar').style.width = this.state.hunger + '%';
+        document.getElementById('thirst-bar').style.width = this.state.thirst + '%';
+        document.getElementById('sanity-bar').style.width = this.state.sanity + '%';
+        
+        // Mettre à jour la localisation
+        const loc = this.locations[this.state.location];
+        document.getElementById('location-name').textContent = loc.name;
+        document.getElementById('scene-title').textContent = loc.name;
+        document.getElementById('scene-description').textContent = loc.description;
+        
+        // Mettre à jour le jour et l'heure
+        const timeStr = this.state.time.toString().padStart(2, '0') + ':00';
+        document.getElementById('day-counter').textContent = `Jour ${this.state.day} • ${timeStr}`;
+        
+        // Mettre à jour l'inventaire
+        this.updateInventoryDisplay();
+    },
+    
+    updateInventoryDisplay() {
+        const container = document.getElementById('inventory-items');
+        container.innerHTML = '';
+        
+        let totalWeight = 0;
+        
+        this.state.inventory.forEach(itemName => {
+            const item = this.items[itemName];
+            if (item) {
+                totalWeight += item.weight;
+                
+                const card = document.createElement('div');
+                card.className = `item-card item-type-${item.type}`;
+                card.textContent = itemName;
+                container.appendChild(card);
+            }
+        });
+        
+        document.getElementById('current-weight').textContent = totalWeight.toFixed(1);
+        document.getElementById('max-weight').textContent = '25';
+        
+        if (this.state.inventory.length === 0) {
+            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666;">Inventaire vide</div>';
+        }
+    },
+    
+    // Génération de PNJ
+    generatePNJs() {
+        const container = document.getElementById('pnj-list');
+        container.innerHTML = '';
+        
+        this.state.currentPNJs = [];
+        
+        // Trouver les PNJ de cette localisation
+        Object.keys(this.pnjs).forEach(pnjId => {
+            const pnj = this.pnjs[pnjId];
+            if (pnj.locations.includes(this.state.location)) {
+                // 50% de chance qu'un PNJ soit présent
+                if (Math.random() > 0.5) {
+                    this.state.currentPNJs.push(pnjId);
+                    
+                    const div = document.createElement('div');
+                    div.className = 'pnj-present fade-in';
+                    div.innerHTML = `
+                        <span class="tag tag-${pnj.clan}">${pnj.name}</span>
+                        <small>${pnj.story}</small>
+                    `;
+                    div.onclick = () => this.startDialogue(pnjId);
+                    container.appendChild(div);
+                }
+            }
+        });
+    },
+    
+    // Affichage d'événements
+    showEvent() {
+        const events = this.events[this.state.location];
+        if (events && events.length > 0) {
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            this.showDialogueText("Événement", randomEvent, [
+                { text: "Continuer", action: () => this.showDefaultChoices() }
+            ]);
+        } else {
+            this.showDefaultChoices();
+        }
+    },
+    
+    // Système de dialogue
+    showDialogueText(speaker, text, choices) {
+        const dialogueText = document.getElementById('dialogue-text');
+        const choicesContainer = document.getElementById('choices-container');
+        
+        dialogueText.innerHTML = `
+            <div class="dialogue-speaker">${speaker}</div>
+            <div>${text}</div>
+        `;
+        
+        choicesContainer.innerHTML = '';
+        
+        choices.forEach(choice => {
+            const button = document.createElement('button');
+            button.className = 'choice-btn fade-in';
+            button.textContent = choice.text;
+            button.onclick = choice.action;
+            
+            if (choice.requirement) {
+                // Vérifier les prérequis
+                const req = choice.requirement;
+                let canUse = true;
+                
+                if (req.item) {
+                    canUse = this.state.inventory.includes(req.item);
+                }
+                
+                if (req.reputation) {
+                    Object.keys(req.reputation).forEach(clan => {
+                        if (this.player.reputation[clan] < req.reputation[clan]) {
+                            canUse = false;
+                        }
+                    });
+                }
+                
+                if (!canUse) {
+                    button.disabled = true;
+                    button.textContent += ' (Condition non remplie)';
+                }
+            }
+            
+            choicesContainer.appendChild(button);
+        });
+    },
+    
+    startDialogue(pnjId) {
+        const pnj = this.pnjs[pnjId];
+        const dialogue = pnj.dialogues;
+        
+        this.showDialogueText(pnj.name, dialogue.initial, 
+            dialogue.options.map((option, index) => ({
+                text: option.text,
+                action: () => this.selectDialogueOption(pnjId, index)
+            }))
+        );
+    },
+    
+    selectDialogueOption(pnjId, optionIndex) {
+        const pnj = this.pnjs[pnjId];
+        const option = pnj.dialogues.options[optionIndex];
+        
+        // Appliquer les effets
+        if (option.effect) {
+            if (option.effect.trust) {
+                // Dans un vrai jeu, on stockerait la confiance par PNJ
+            }
+            
+            if (option.effect.reputation) {
+                Object.keys(option.effect.reputation).forEach(clan => {
+                    this.player.reputation[clan] += option.effect.reputation[clan];
+                });
+            }
+            
+            if (option.effect.sanity) {
+                this.state.sanity = Math.max(0, this.state.sanity + option.effect.sanity);
+            }
+            
+            if (option.effect.health) {
+                this.state.health = Math.max(0, Math.min(100, this.state.health + option.effect.health));
+            }
+        }
+        
+        // Ajouter des items
+        if (option.items) {
+            option.items.forEach(item => {
+                this.state.inventory.push(item);
+            });
+            this.updateInventoryDisplay();
+        }
+        
+        // Combat
+        if (option.combat) {
+            const damage = 20 + Math.floor(Math.random() * 30);
+            this.state.health -= damage;
+            
+            this.showDialogueText(pnj.name, option.next + ` (Vous perdez ${damage} PV)`, [
+                { text: "Fuire", action: () => this.endCombat() }
+            ]);
+            
+            this.checkGameOver();
+            this.updateUI();
+            return;
+        }
+        
+        // Réponse normale
+        this.showDialogueText(pnj.name, option.next, [
+            { text: "Continuer", action: () => this.showDefaultChoices() }
+        ]);
+        
+        this.saveGame();
+        this.updateUI();
+    },
+    
+    endCombat() {
+        // Fuir vers une localisation aléatoire
+        const locations = Object.keys(this.locations);
+        let newLoc;
+        do {
+            newLoc = locations[Math.floor(Math.random() * locations.length)];
+        } while (newLoc === this.state.location);
+        
+        this.state.location = newLoc;
+        this.state.hunger += 15;
+        this.state.thirst += 20;
+        this.state.sanity -= 10;
+        
+        this.updateUI();
+        this.generatePNJs();
+        this.showEvent();
+    },
+    
+    // Choix par défaut
+    showDefaultChoices() {
+        const loc = this.locations[this.state.location];
+        
+        this.showDialogueText("Que faire ?", loc.description, [
+            {
+                text: "Fouiller la zone",
+                action: () => this.searchLocation()
+            },
+            {
+                text: "Parler aux PNJ présents",
+                action: () => {
+                    if (this.state.currentPNJs.length > 0) {
+                        this.startDialogue(this.state.currentPNJs[0]);
+                    } else {
+                        this.showDialogueText("Information", "Il n'y a personne avec qui parler ici.", [
+                            { text: "Continuer", action: () => this.showDefaultChoices() }
+                        ]);
+                    }
+                }
+            },
+            {
+                text: "Se reposer",
+                action: () => this.rest()
+            },
+            {
+                text: "Observer les alentours",
+                action: () => this.observe()
+            }
+        ]);
+    },
+    
+    // Actions
+    searchLocation() {
+        const loc = this.locations[this.state.location];
+        
+        // Coût en ressources
+        this.state.hunger += 10;
+        this.state.thirst += 15;
+        this.state.sanity -= 5;
+        
+        // Chance de trouver quelque chose basée sur le danger
+        const findChance = (10 - loc.danger) * 10;
+        const roll = Math.random() * 100;
+        
+        if (roll < findChance) {
+            // Trouver un item
+            const items = Object.keys(this.items);
+            const foundItem = items[Math.floor(Math.random() * items.length)];
+            
+            this.state.inventory.push(foundItem);
+            this.updateInventoryDisplay();
+            
+            this.showDialogueText("Fouille", `Vous trouvez : ${foundItem}`, [
+                { text: "Continuer", action: () => this.showDefaultChoices() }
+            ]);
+        } else if (roll < findChance + 20) {
+            // Rencontrer un danger
+            const damage = Math.floor(Math.random() * 20) + 5;
+            this.state.health -= damage;
+            
+            this.showDialogueText("Danger !", `Des Rôdeurs vous attaquent ! Vous perdez ${damage} PV.`, [
+                { text: "Fuire", action: () => this.showDefaultChoices() }
+            ]);
+            
+            this.checkGameOver();
+        } else {
+            // Rien trouver
+            this.showDialogueText("Fouille", "Vous ne trouvez rien d'utile...", [
+                { text: "Continuer", action: () => this.showDefaultChoices() }
+            ]);
+        }
+        
+        this.updateUI();
+        this.saveGame();
+    },
+    
+    rest() {
+        // Vérifier si le joueur a de la nourriture
+        const foodIndex = this.state.inventory.findIndex(item => 
+            this.items[item] && this.items[item].type === 'food');
+        
+        if (foodIndex > -1) {
+            // Consommer la nourriture
+            const food = this.state.inventory.splice(foodIndex, 1)[0];
+            this.state.hunger = Math.max(0, this.state.hunger - 40);
+            this.state.health = Math.min(100, this.state.health + 20);
+            this.state.sanity += 10;
+            
+            this.updateInventoryDisplay();
+            
+            this.showDialogueText("Repos", `Vous consommez ${food} et vous reposez. Vous vous sentez mieux.`, [
+                { text: "Continuer", action: () => this.advanceTime(6) }
+            ]);
+        } else {
+            // Dormir le ventre vide
+            this.state.hunger += 10;
+            this.state.sanity -= 5;
+            
+            this.showDialogueText("Repos", "Vous essayez de dormir, mais la faim vous tenaille...", [
+                { text: "Continuer", action: () => this.advanceTime(6) }
+            ]);
+        }
+        
+        this.updateUI();
+        this.saveGame();
+    },
+    
+    observe() {
+        this.state.sanity += 5;
+        
+        const observations = [
+            "Vous remarquez des traces de passage récent.",
+            "Le silence est pesant... trop pesant.",
+            "Vous entendez des bruits au loin, mais ne voyez rien.",
+            "La brume rend l'observation difficile."
+        ];
+        
+        const obs = observations[Math.floor(Math.random() * observations.length)];
+        
+        this.showDialogueText("Observation", obs, [
+            { text: "Continuer", action: () => this.showDefaultChoices() }
+        ]);
+        
+        this.updateUI();
+    },
+    
+    advanceTime(hours) {
+        this.state.time += hours;
+        if (this.state.time >= 24) {
+            this.state.time -= 24;
+            this.state.day++;
+        }
+        
+        // Régénération naturelle
+        this.state.sanity = Math.min(100, this.state.sanity + 5);
+        
+        this.updateUI();
+        this.generatePNJs();
+        this.showEvent();
+    },
+    
+    // Voyage
+    openTravel() {
+        showScreen('travel');
+        this.updateTravelScreen();
+    },
+    
+    updateTravelScreen() {
+        const container = document.getElementById('locations-list');
+        container.innerHTML = '';
+        
+        // Afficher les localisations connues
+        this.state.knownLocations.forEach(locId => {
+            const loc = this.locations[locId];
+            
+            const card = document.createElement('div');
+            card.className = 'location-card';
+            card.onclick = () => this.travelTo(locId);
+            
+            let dangerClass = 'danger-high';
+            if (loc.danger <= 3) dangerClass = 'danger-low';
+            else if (loc.danger <= 6) dangerClass = 'danger-medium';
+            
+            card.innerHTML = `
+                <strong>${loc.name}</strong>
+                <span class="location-danger ${dangerClass}">Danger: ${loc.danger}/10</span>
+                <div style="margin-top: 5px; font-size: 12px; color: #888;">${loc.special}</div>
+            `;
+            
+            container.appendChild(card);
+        });
+        
+        // Option de découverte
+        const discoverCard = document.createElement('div');
+        discoverCard.className = 'location-card';
+        discoverCard.onclick = () => this.discoverLocation();
+        discoverCard.innerHTML = `
+            <strong>Explorer l'inconnu</strong>
+            <span class="location-danger danger-high">Très risqué</span>
+            <div style="margin-top: 5px; font-size: 12px; color: #888;">Découvrir une nouvelle zone</div>
+        `;
+        container.appendChild(discoverCard);
+    },
+    
+    travelTo(locId) {
+        const loc = this.locations[locId];
+        
+        // Coût en ressources pour voyager
+        this.state.hunger += 15;
+        this.state.thirst += 20;
+        this.state.sanity -= 5;
+        
+        this.state.location = locId;
+        
+        showScreen('game');
+        
+        this.updateUI();
+        this.generatePNJs();
+        this.showEvent();
+        this.saveGame();
+    },
+    
+    discoverLocation() {
+        // Trouver une localisation non connue
+        const allLocs = Object.keys(this.locations);
+        const unknownLocs = allLocs.filter(loc => !this.state.knownLocations.includes(loc));
+        
+        if (unknownLocs.length > 0) {
+            const newLoc = unknownLocs[Math.floor(Math.random() * unknownLocs.length)];
+            this.state.knownLocations.push(newLoc);
+            
+            // Voyage dangereux
+            const damage = Math.floor(Math.random() * 30) + 10;
+            this.state.health -= damage;
+            
+            showScreen('game');
+            
+            this.showDialogueText("Exploration", `Vous vous êtes perdu ! Vous trouvez ${this.locations[newLoc].name} mais subissez ${damage} PV de dégâts.`, [
+                { text: "Continuer", action: () => {
+                    this.state.location = newLoc;
+                    this.updateUI();
+                    this.generatePNJs();
+                    this.showEvent();
+                } }
+            ]);
+            
+            this.checkGameOver();
+            this.saveGame();
+        } else {
+            showScreen('game');
+            this.showDialogueText("Exploration", "Vous avez déjà découvert toutes les zones.", [
+                { text: "Continuer", action: () => this.showDefaultChoices() }
+            ]);
+        }
+    },
+    
+    // Gestion de l'inventaire
+    openInventory() {
+        showScreen('inventory');
+    },
+    
+    // Vérification de Game Over
+    checkGameOver() {
+        if (this.state.health <= 0) {
+            this.gameOver("Vos blessures sont trop graves.");
+            return;
+        }
+        
+        if (this.state.hunger >= 100) {
+            this.gameOver("La faim vous a terrassé.");
+            return;
+        }
+        
+        if (this.state.thirst >= 100) {
+            this.gameOver("La déshydratation a eu raison de vous.");
+            return;
+        }
+        
+        if (this.state.sanity <= 0) {
+            this.gameOver("La folie a pris le dessus.");
+            return;
+        }
+    },
+    
+    gameOver(reason) {
+        this.state.gameOver = true;
+        
+        const message = `
+            <h2 style="color: #ff4444; margin-bottom: 20px;">FIN DE PARTIE</h2>
+            <p>${reason}</p>
+            <p>Jours survécus : ${this.state.day}</p>
+            <p>Zones découvertes : ${this.state.knownLocations.length}</p>
+            <br>
+            <button onclick="restartGame()" style="
+                width: 100%;
+                padding: 15px;
+                background: #a89f91;
+                color: #000;
+                border: none;
+                border-radius: 5px;
+                font-family: 'Courier New', monospace;
+                font-weight: bold;
+                cursor: pointer;
+            ">
+                NOUVELLE PARTIE
+            </button>
+        `;
+        
+        document.getElementById('dialogue-text').innerHTML = message;
+        document.getElementById('choices-container').innerHTML = '';
+        
+        // Supprimer la sauvegarde
+        localStorage.removeItem('bruxelles_cendres_save');
+    }
+};
+
+// FONCTIONS GLOBALES
+let selectedBackground = "";
+
+function selectBackground(bg) {
+    selectedBackground = bg;
+    document.querySelectorAll('.character-option').forEach(el => {
+        el.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+}
+
+function startGame() {
+    const name = document.getElementById('player-name').value || "Anonyme";
+    
+    if (!selectedBackground) {
+        alert("Choisissez un historique !");
+        return;
+    }
+    
+    // Initialiser le joueur
+    GAME.player.name = name;
+    GAME.player.background = selectedBackground;
+    
+    // Donner des items initiaux selon l'historique
+    switch(selectedBackground) {
+        case 'medecin':
+            GAME.state.inventory = ["Bandages", "Antibiotiques", "Eau (bouteille)"];
+            GAME.player.reputation.commune = 10;
+            break;
+        case 'soldat':
+            GAME.state.inventory = ["Pistolet 9mm", "Couteau rouillé", "Conserve de raviolis"];
+            GAME.player.reputation.elus = 5;
+            GAME.player.reputation.pillards = -10;
+            break;
+        case 'politique':
+            GAME.state.inventory = ["Lampe torche", "Clés de voiture"];
+            GAME.player.reputation.elus = 10;
+            GAME.player.reputation.commune = -10;
+            break;
+        case 'criminel':
+            GAME.state.inventory = ["Couteau rouillé", "Morceau de métal", "Morceau de métal"];
+            GAME.player.reputation.pillards = 5;
+            GAME.player.reputation.elus = -20;
+            break;
+        case 'ouvrier':
+            GAME.state.inventory = ["Morceau de métal", "Morceau de métal", "Conserve de raviolis", "Eau (bouteille)"];
+            break;
+    }
+    
+    showScreen('game');
+    GAME.init();
+}
+
+function showScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+    });
+    document.getElementById(screenId + '-screen').classList.add('active');
+}
+
+function restartGame() {
+    // Réinitialiser le jeu
+    GAME.player = {
+        name: "",
+        background: "",
+        reputation: {
+            ressuscites: 0,
+            elus: 0,
+            commune: 0,
+            marchands: 0,
+            pillards: 0
+        }
+    };
+    
+    GAME.state = {
+        day: 1,
+        time: 9,
+        health: 100,
+        hunger: 25,
+        thirst: 30,
+        sanity: 100,
+        infection: 0,
+        location: "bruxelles",
+        inventory: [],
+        knownLocations: ["bruxelles", "ixelles"],
+        currentPNJs: [],
+        gameOver: false
+    };
+    
+    showScreen('creation');
+    
+    // Réinitialiser la sélection
+    selectedBackground = "";
+    document.querySelectorAll('.character-option').forEach(el => {
+        el.classList.remove('selected');
+    });
+    document.getElementById('player-name').value = "";
+}
+
+// Initialiser au chargement
+window.onload = function() {
+    // Vérifier s'il y a une sauvegarde
+    const hasSave = localStorage.getItem('bruxelles_cendres_save');
+    if (hasSave) {
+        if (confirm("Une partie sauvegardée a été trouvée. Voulez-vous la reprendre ?")) {
+            GAME.loadSave();
+            showScreen('game');
+            GAME.init();
+        } else {
+            showScreen('creation');
+        }
+    } else {
+        showScreen('creation');
+    }
+};
+</script>
+</body>
+</html>
