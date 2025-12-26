@@ -5,27 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PLURIBUS : REBORN</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <meta name="theme-color" content="#8a2be2">
+    <meta name="theme-color" content="#00ff00">
     <style>
         :root {
             --bg-color: #0a0a0a;
-            --text-color: #f0f0f0;
-            --accent-color: #8a2be2;
-            --danger-color: #ff4d4d;
-            --safe-color: #4dff88;
-            --panel-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --accent-color: #00ff00;
+            --danger-color: #ff3333;
+            --safe-color: #33ff33;
+            --panel-color: #111111;
             --border-color: #333;
+            --pixel-size: 2px;
         }
 
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Courier New', monospace;
             margin: 0;
             padding: 0;
             height: 100vh;
@@ -35,17 +38,42 @@
             touch-action: pan-y;
         }
 
-        /* Header avec stats */
+        /* Effet scanlines */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% var(--pixel-size);
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        /* Header avec stats style pixel */
         #header {
-            background: linear-gradient(to right, var(--panel-color), #222);
-            border-bottom: 2px solid var(--accent-color);
-            padding: 12px 15px;
+            background: #111;
+            border-bottom: 3px solid var(--accent-color);
+            padding: 10px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 0 #000;
             z-index: 100;
             flex-shrink: 0;
+            border-image: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 2px,
+                #222 2px,
+                #222 4px
+            ) 1;
         }
 
         .stat-item {
@@ -53,22 +81,27 @@
             flex-direction: column;
             align-items: center;
             min-width: 70px;
+            padding: 5px;
+            border: 2px solid #333;
+            background: #0a0a0a;
         }
 
         .stat-label {
-            font-size: 11px;
-            opacity: 0.8;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 4px;
+            color: #888;
         }
 
         .stat-value {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
+            text-shadow: 0 0 5px currentColor;
         }
 
         #sync-value {
             color: var(--accent-color);
-            text-shadow: 0 0 8px var(--accent-color);
         }
 
         #health-value {
@@ -79,29 +112,31 @@
             color: #ffcc00;
         }
 
-        /* Barres de progression */
+        /* Barres de progression pixel */
         .progress-container {
             width: 100%;
-            height: 6px;
-            background-color: #333;
-            border-radius: 3px;
+            height: 8px;
+            background-color: #222;
+            border: 2px solid #333;
             margin-top: 4px;
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
-            border-radius: 3px;
+            background-color: currentColor;
+            box-shadow: 
+                inset -2px 0 0 rgba(255,255,255,0.2),
+                inset 2px 0 0 rgba(0,0,0,0.5);
             transition: width 0.5s ease;
         }
 
         #sync-fill {
-            background: linear-gradient(to right, #4a00e0, #8a2be2);
-            box-shadow: 0 0 6px var(--accent-color);
+            color: var(--accent-color);
         }
 
         #health-fill {
-            background: linear-gradient(to right, #00b09b, #96c93d);
+            color: var(--safe-color);
         }
 
         /* Zone de jeu principale */
@@ -111,154 +146,185 @@
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            background: #000;
         }
 
-        #scene-container {
+        /* Cinématique pixel */
+        #cinematic-container {
             flex: 1;
+            position: relative;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 20px;
+        }
+
+        #cinematic-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 0;
+        }
+
+        #cinematic-foreground {
             position: relative;
-            min-height: 200px;
-        }
-
-        /* Effets de post-traitement */
-        #vignette {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            background: radial-gradient(ellipse at center, transparent 40%, rgba(10,10,10,0.8) 70%);
             z-index: 2;
+            width: 100%;
+            max-width: 800px;
+            height: 60vh;
+            border: 3px solid #333;
+            background: #111;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.2),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            overflow: hidden;
         }
 
-        #scanlines {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .cinematic-scene {
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-                to bottom,
-                rgba(255,255,255,0) 0%,
-                rgba(255,255,255,0.03) 50%,
-                rgba(255,255,255,0) 100%
-            );
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 3;
-            animation: scan 10s linear infinite;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
         }
 
-        @keyframes scan {
-            0% { background-position: 0 0; }
-            100% { background-position: 0 100%; }
+        .cinematic-scene.active {
+            display: flex;
         }
 
-        /* Emoji scene */
-        #scene-emoji {
-            font-size: 70px;
+        .scene-title {
+            font-size: 24px;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
             margin-bottom: 20px;
-            filter: drop-shadow(0 0 10px rgba(138, 43, 226, 0.5));
-            z-index: 1;
-            transition: transform 0.3s, filter 0.3s;
+            text-shadow: 0 0 10px currentColor;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+            width: 100%;
         }
 
-        .high-sync #scene-emoji {
-            filter: drop-shadow(0 0 15px rgba(138, 43, 226, 0.8)) hue-rotate(30deg);
-            animation: pulse 2s infinite;
+        .scene-description {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border: 1px solid #333;
+            max-width: 600px;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+        .scene-character {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+            margin-top: 20px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            width: 100%;
+        }
+
+        /* Animation d'apparition */
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         /* Texte de l'histoire */
         #story-text {
-            background-color: rgba(26, 26, 26, 0.85);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            background-color: rgba(17, 17, 17, 0.95);
+            border: 3px solid #333;
+            border-radius: 0;
             padding: 20px;
-            margin: 0 15px 15px;
+            margin: 15px;
             line-height: 1.6;
-            font-size: 16px;
-            max-height: 200px;
+            font-size: 14px;
+            max-height: 150px;
             overflow-y: auto;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
             z-index: 1;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            position: relative;
+            border-image: repeating-linear-gradient(
+                90deg,
+                #333,
+                #333 2px,
+                transparent 2px,
+                transparent 4px
+            ) 1;
         }
 
-        /* Choix */
+        /* Choix style pixel */
         #choices-container {
             padding: 15px;
-            background-color: var(--panel-color);
-            border-top: 2px solid var(--border-color);
+            background-color: #111;
+            border-top: 3px solid #333;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
             max-height: 40vh;
             overflow-y: auto;
             flex-shrink: 0;
         }
 
         .choice-btn {
-            background: linear-gradient(to right, #222, #2a2a2a);
-            border: 1px solid var(--border-color);
+            background: #0a0a0a;
+            border: 2px solid #333;
             border-left: 4px solid var(--accent-color);
             color: var(--text-color);
-            padding: 16px 15px;
+            padding: 15px;
             text-align: left;
-            font-family: inherit;
-            font-size: 15px;
-            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.1s;
             position: relative;
-            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .choice-btn:active {
-            background: linear-gradient(to right, #2a2a2a, #333);
-            transform: translateY(2px);
-            border-left-color: #a855f7;
+        .choice-btn:active, .choice-btn:hover {
+            background: #222;
+            border-left-color: #33ff33;
+            transform: translateX(2px);
         }
 
-        .choice-btn::after {
-            content: "";
+        .choice-btn:active::before {
+            content: "▶";
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.7s;
-        }
-
-        .choice-btn:active::after {
-            left: 100%;
+            left: -15px;
+            color: var(--accent-color);
         }
 
         .choice-sync {
-            font-size: 12px;
+            font-size: 10px;
             float: right;
-            padding: 2px 8px;
-            border-radius: 10px;
-            background-color: rgba(138, 43, 226, 0.2);
+            padding: 2px 6px;
+            background-color: #222;
+            border: 1px solid #333;
+            margin-left: 10px;
         }
 
         .choice-sync.positive {
-            color: #4dff88;
+            color: #33ff33;
+            border-color: #33ff33;
         }
 
         .choice-sync.negative {
-            color: #ff4d4d;
+            color: #ff3333;
+            border-color: #ff3333;
         }
 
         /* Overlay pour effets */
@@ -271,26 +337,25 @@
             pointer-events: none;
             z-index: 1000;
             opacity: 0;
-            transition: opacity 0.5s;
+            transition: opacity 0.3s;
         }
 
-        /* Menu latéral */
+        /* Menu latéral pixel */
         #side-menu-btn {
             position: fixed;
             bottom: 20px;
             right: 20px;
             width: 50px;
             height: 50px;
-            background-color: var(--accent-color);
-            border-radius: 50%;
+            background-color: #111;
+            border: 2px solid var(--accent-color);
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 22px;
-            color: white;
+            font-size: 20px;
+            color: var(--accent-color);
             z-index: 101;
-            box-shadow: 0 4px 12px rgba(138, 43, 226, 0.4);
-            border: none;
+            box-shadow: 0 4px 0 #000;
             cursor: pointer;
         }
 
@@ -300,84 +365,127 @@
             right: -300px;
             width: 280px;
             height: 100%;
-            background-color: var(--panel-color);
+            background-color: #111;
             z-index: 200;
             transition: right 0.3s;
             padding: 20px;
             overflow-y: auto;
-            border-left: 2px solid var(--accent-color);
+            border-left: 3px solid var(--accent-color);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
         }
 
         .menu-section {
             margin-bottom: 25px;
+            border: 2px solid #333;
+            padding: 15px;
+            background: #0a0a0a;
         }
 
         .menu-section h3 {
             color: var(--accent-color);
             margin-top: 0;
             margin-bottom: 15px;
-            font-size: 18px;
-            border-bottom: 1px solid var(--border-color);
+            font-size: 16px;
+            border-bottom: 2px solid #333;
             padding-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .skill-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px dashed var(--border-color);
+            padding: 8px 0;
+            border-bottom: 1px dotted #333;
         }
 
         .skill-name {
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .skill-level {
             color: #ffcc00;
             font-weight: bold;
+            font-family: monospace;
         }
 
         .inventory-item {
-            background-color: rgba(255,255,255,0.05);
+            background-color: #0a0a0a;
             padding: 10px;
-            border-radius: 6px;
+            border: 1px solid #333;
             margin-bottom: 8px;
             display: flex;
             align-items: center;
+            font-size: 12px;
         }
 
-        .inventory-item i {
+        .inventory-item::before {
+            content: "■";
             margin-right: 10px;
             color: var(--accent-color);
         }
 
-        /* Glitch effect */
+        /* Effets de glitch */
         @keyframes glitch {
             0% { transform: translate(0); filter: hue-rotate(0); }
-            10% { transform: translate(-3px, -1px); filter: hue-rotate(30deg); }
-            20% { transform: translate(3px, 1px); }
-            30% { transform: translate(-3px, 0); filter: hue-rotate(60deg); }
-            40% { transform: translate(0, 2px); }
-            50% { transform: translate(0); filter: hue-rotate(90deg); }
+            2% { transform: translate(-2px, -1px); filter: hue-rotate(90deg); }
+            4% { transform: translate(2px, 1px); }
+            6% { transform: translate(-2px, 0); filter: hue-rotate(180deg); }
+            8% { transform: translate(0, 2px); }
+            10% { transform: translate(0); filter: hue-rotate(0); }
             100% { transform: translate(0); filter: hue-rotate(0); }
         }
 
         .glitch-active {
-            animation: glitch 0.5s infinite;
+            animation: glitch 0.3s;
+        }
+
+        /* Effet statique */
+        @keyframes static {
+            0% { background-position: 0 0; }
+            100% { background-position: 20px 20px; }
+        }
+
+        .static-effect {
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,255,0,0.05) 2px,
+                    rgba(0,255,0,0.05) 4px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0,255,0,0.05) 2px,
+                    rgba(0,255,0,0.05) 4px
+                );
+            animation: static 0.5s infinite linear;
         }
 
         /* Responsive */
         @media (max-height: 700px) {
-            #scene-emoji { font-size: 50px; }
-            #story-text { font-size: 14px; max-height: 150px; }
+            #cinematic-foreground { height: 50vh; }
+            #story-text { font-size: 12px; max-height: 120px; }
             .choice-btn { padding: 12px 15px; }
         }
 
         @media (max-width: 400px) {
             .stat-item { min-width: 60px; }
-            .stat-value { font-size: 16px; }
-            #scene-emoji { font-size: 60px; }
+            .stat-value { font-size: 14px; }
+            .scene-title { font-size: 18px; }
+        }
+
+        /* Curseur personnalisé */
+        body {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="0" width="16" height="16" fill="%2300ff00" opacity="0.5"/></svg>'), auto;
+        }
+
+        button, .choice-btn {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="0" width="16" height="16" fill="%2333ff33"/></svg>'), pointer;
         }
     </style>
 </head>
@@ -411,13 +519,19 @@
     </div>
 
     <div id="game-container">
-        <div id="vignette"></div>
-        <div id="scanlines"></div>
-        
-        <div id="scene-container">
-            <div id="scene-emoji">🏙️</div>
-            <div id="story-text">Chargement de la conscience...</div>
+        <div id="cinematic-container">
+            <div id="cinematic-background" class="static-effect"></div>
+            <div id="cinematic-foreground">
+                <!-- Scènes cinématiques -->
+                <div id="scene-bruxelles" class="cinematic-scene active">
+                    <div class="scene-title">BRUXELLES. RUE NEUVE.</div>
+                    <div class="scene-description" id="cinematic-text"></div>
+                    <div class="scene-character">SILENCE ABSOLU</div>
+                </div>
+            </div>
         </div>
+        
+        <div id="story-text">CHARGEMENT DE LA CONSCIENCE...</div>
     </div>
 
     <div id="choices-container">
@@ -425,55 +539,54 @@
     </div>
 
     <button id="side-menu-btn">
-        <i class="fas fa-bars"></i>
+        ▣
     </button>
 
     <div id="side-menu">
         <div class="menu-section">
-            <h3><i class="fas fa-user"></i> PERSONNAGE</h3>
-            <div><strong>Nom:</strong> <span id="menu-name">INCONNU</span></div>
-            <div><strong>Chapitre:</strong> <span id="menu-chapter">Prologue</span></div>
-            <div><strong>Alignement:</strong> <span id="menu-alignment">Neutre</span></div>
+            <h3>PERSONNAGE</h3>
+            <div><strong>NOM:</strong> <span id="menu-name">INCONNU</span></div>
+            <div><strong>CHAPITRE:</strong> <span id="menu-chapter">PROLOGUE</span></div>
+            <div><strong>ALIGNEMENT:</strong> <span id="menu-alignment">NEUTRE</span></div>
         </div>
         
         <div class="menu-section">
-            <h3><i class="fas fa-star"></i> COMPÉTENCES</h3>
+            <h3>COMPÉTENCES</h3>
             <div class="skill-item">
-                <span class="skill-name">Piratage de Ruche</span>
-                <span class="skill-level" id="skill-hack">Niv. 0</span>
+                <span class="skill-name">PIRATAGE DE RUCHE</span>
+                <span class="skill-level" id="skill-hack">LVL 0</span>
             </div>
             <div class="skill-item">
-                <span class="skill-name">Résilience Psychique</span>
-                <span class="skill-level" id="skill-resist">Niv. 0</span>
+                <span class="skill-name">RÉSILIENCE PSYCHIQUE</span>
+                <span class="skill-level" id="skill-resist">LVL 0</span>
             </div>
             <div class="skill-item">
-                <span class="skill-name">Expertise Tactile</span>
-                <span class="skill-level" id="skill-tech">Niv. 0</span>
+                <span class="skill-name">EXPERTISE TACTILE</span>
+                <span class="skill-level" id="skill-tech">LVL 0</span>
             </div>
             <div class="skill-item">
-                <span class="skill-name">Points disponibles:</span>
+                <span class="skill-name">POINTS DISPONIBLES:</span>
                 <span class="skill-level" id="skill-points">0</span>
             </div>
         </div>
         
         <div class="menu-section">
-            <h3><i class="fas fa-briefcase"></i> INVENTAIRE</h3>
+            <h3>INVENTAIRE</h3>
             <div id="inventory-list">
-                <div class="inventory-item"><i class="fas fa-id-card"></i> Pass Navigo</div>
-                <!-- Les objets seront ajoutés dynamiquement -->
+                <div class="inventory-item">PASS NAVIGO</div>
             </div>
         </div>
         
         <div class="menu-section">
-            <h3><i class="fas fa-cog"></i> OPTIONS</h3>
-            <button class="choice-btn" style="margin-bottom: 10px;" onclick="saveGame()">
-                <i class="fas fa-save"></i> Sauvegarder
+            <h3>SYSTÈME</h3>
+            <button class="choice-btn" style="margin-bottom: 8px; font-size: 12px;" onclick="saveGame()">
+                ■ SAUVEGARDER
             </button>
-            <button class="choice-btn" style="margin-bottom: 10px;" onclick="loadGame()">
-                <i class="fas fa-folder-open"></i> Charger
+            <button class="choice-btn" style="margin-bottom: 8px; font-size: 12px;" onclick="loadGame()">
+                ■ CHARGER
             </button>
-            <button class="choice-btn" style="background-color: rgba(255, 77, 77, 0.2);" onclick="resetGame()">
-                <i class="fas fa-redo"></i> Recommencer
+            <button class="choice-btn" style="border-color: #ff3333; font-size: 12px;" onclick="resetGame()">
+                ■ RECOMMENCER
             </button>
         </div>
     </div>
@@ -500,7 +613,7 @@
             health: 100,
             xp: 0,
             alignment: "neutral",
-            alignmentScore: 0, // négatif = pro-Carol, positif = pro-Laxmi
+            alignmentScore: 0,
             skills: {
                 hack: 0,
                 resist: 0,
@@ -515,40 +628,43 @@
         // ==================== DONNÉES DE L'HISTOIRE ====================
         const storyData = {
             start: {
-                text: "BRUXELLES. RUE NEUVE. Un silence de mort. Tu te réveilles au sol, le crâne explosant de douleur. Le 'Lien' vient d'être brisé par une onde de choc mondiale. Tu vomis un liquide noir et visqueux... ton corps rejette la Ruche.",
-                scene: "🏙️",
+                title: "BRUXELLES. RUE NEUVE.",
+                description: "Un silence de mort. Tu te réveilles au sol, le crâne explosant de douleur. Le 'Lien' vient d'être brisé par une onde de choc mondiale. Tu vomis un liquide noir et visqueux... ton corps rejette la Ruche.",
+                character: "SILENCE ABSOLU",
                 choices: [
-                    { text: "Se lever avec peine et chercher son nom", next: "naming", xp: 5 }
+                    { text: "SE LEVER AVEC PEINE ET CHERCHER SON NOM", next: "naming", xp: 5 }
                 ]
             },
             
             naming: {
-                text: "La douleur s'estompe lentement. Tu aperçois un vieux pass Navigo au sol, à moitié calciné. Quel était ton nom, avant le Lien ?",
-                scene: "💳",
+                title: "IDENTITÉ RETROUVÉE",
+                description: "La douleur s'estompe lentement. Tu aperçois un vieux pass Navigo au sol, à moitié calciné. Quel était ton nom, avant le Lien ?",
+                character: "SOUVENIRS ÉPARS",
                 type: "input",
                 next: "awakening"
             },
             
             awakening: {
-                text: "Une silhouette apparaît dans l'encadrement de la porte. Marc, ton voisin. Ses yeux sont vides, trop calmes. Il te tend une tasse fumante de protéines HDP. 'Tu as faim, nous le sentons tous. Reviens dans le Lien. La solitude est une maladie.'",
-                scene: "👤",
+                title: "LE VOISIN",
+                description: "Une silhouette apparaît dans l'encadrement de la porte. Marc, ton voisin. Ses yeux sont vides, trop calmes. Il te tend une tasse fumante de protéines HDP.",
+                character: "MARC: VOISIN DE LA RUCHE",
                 choices: [
                     { 
-                        text: "Accepter la tasse (Rester connecté)", 
+                        text: "ACCEPTER LA TASSE", 
                         next: "stay_connected", 
                         sync: 15, 
                         alignment: 5,
                         xp: 10
                     },
                     { 
-                        text: "Renverser la tasse (Refuser)", 
+                        text: "RENVERSER LA TASSE", 
                         next: "rebel", 
                         sync: -5, 
                         alignment: -5,
                         xp: 15
                     },
                     { 
-                        text: "Frapper Marc et fuir par l'escalier", 
+                        text: "FRAPPER ET FUIR", 
                         next: "violence", 
                         health: -10,
                         alignment: -10,
@@ -558,11 +674,12 @@
             },
             
             stay_connected: {
-                text: "Le liquide est tiède, sucré-amer. Aussitôt, les murmures de la Ruche reviennent en fond sonore. Tu sais instinctivement que Diabaté surveille la ville. Tu te sens en sécurité, protégé... mais ton 'Moi' s'efface comme du sable dans la marée.",
-                scene: "🧬",
+                title: "LA CONNEXION",
+                description: "Le liquide est tiède, sucré-amer. Aussitôt, les murmures de la Ruche reviennent en fond sonore. Tu sais instinctivement que Diabaté surveille la ville. Tu te sens en sécurité, protégé...",
+                character: "MURMURES DE LA RUCHE",
                 choices: [
                     { 
-                        text: "Prendre la radio de Marc et sortir discrètement", 
+                        text: "PRENDRE LA RADIO ET SORTIR", 
                         next: "escape_brussels",
                         xp: 10
                     }
@@ -570,12 +687,13 @@
             },
             
             rebel: {
-                text: "La tasse se brise en mille morceaux. Marc penche la tête, une tristesse infinie dans le regard. 'La solitude te détruira, [NOM].' Mais tu sens une force incroyable monter en toi : tu es LIBRE. Pour la première fois depuis des mois, tu penses par toi-même.",
-                scene: "💔",
+                title: "LA RÉBELLION",
+                description: "La tasse se brise en mille morceaux. Marc penche la tête, une tristesse infinie dans le regard. 'La solitude te détruira.' Mais tu sens une force incroyable monter en toi.",
+                character: "PREMIÈRE RÉSISTANCE",
                 inventoryAdd: "Radio portable",
                 choices: [
                     { 
-                        text: "Prendre l'échelle de secours au fond du couloir", 
+                        text: "PRENDRE L'ÉCHELLE DE SECOURS", 
                         next: "escape_brussels",
                         xp: 10
                     }
@@ -583,13 +701,14 @@
             },
             
             violence: {
-                text: "Tu le pousses violemment. Il tombe sans un bruit, sans colère. Les Pluribus ne connaissent pas la haine, seulement la tristesse. Tu dévales les escaliers quatre à quatre, le cœur battant la chamade. Tu viens de franchir un point de non-retour.",
-                scene: "🏃‍♂️",
+                title: "LA VIOLENCE",
+                description: "Tu le pousses violemment. Il tombe sans un bruit, sans colère. Les Pluribus ne connaissent pas la haine, seulement la tristesse. Tu viens de franchir un point de non-retour.",
+                character: "POINT DE NON-RETOUR",
                 health: -5,
                 inventoryAdd: "Couteau de poche",
                 choices: [
                     { 
-                        text: "Sortir dans la rue déserte", 
+                        text: "SORTIR DANS LA RUE DÉSERTE", 
                         next: "escape_brussels",
                         xp: 15
                     }
@@ -597,11 +716,12 @@
             },
             
             escape_brussels: {
-                text: "Dehors, l'apocalypse. Le ciel a viré au violet électrique. Des centaines de Pluribus sont figés dans la rue, certains saignent du nez. Un drone de Diabaté survole la zone. Son haut-parleur crache : 'ALERTE : DISSIDENT DÉTECTÉ. NEUTRALISATION AUTORISÉE.' Le voyage vers Carol commence.",
-                scene: "🚁",
+                title: "LA FUITE",
+                description: "Dehors, l'apocalypse. Le ciel a viré au violet électrique. Des centaines de Pluribus sont figés dans la rue, certains saignent du nez. Un drone de Diabaté survole la zone.",
+                character: "SYSTÈME D'ALERTE: DISSIDENT DÉTECTÉ",
                 choices: [
                     { 
-                        text: "Chercher un véhicule pour fuir vers le sud", 
+                        text: "CHERCHER UN VÉHICULE", 
                         next: "car_theft",
                         xp: 10
                     }
@@ -609,13 +729,14 @@
             },
             
             car_theft: {
-                text: "Une voiture électrique des Autres est garée porte ouverte. Tu n'as pas besoin de clés. En posant ta main sur le tableau de bord, tes résidus de connexion 'parlent' au système. L'écran s'allime : 'BIENVENUE, [NOM]. DESTINATION ?'. Le moteur démarre en silence.",
-                scene: "🚗",
+                title: "LE VÉHICULE",
+                description: "Une voiture électrique des Autres est garée porte ouverte. En posant ta main sur le tableau de bord, tes résidus de connexion 'parlent' au système. Le moteur démarre en silence.",
+                character: "SYSTÈME RÉACTIVÉ",
                 sync: 5,
                 inventoryAdd: "Voiture électrique",
                 choices: [
                     { 
-                        text: "Rouler vers le sud, direction la frontière", 
+                        text: "ROULER VERS LE SUD", 
                         next: "pursuit_laxmi",
                         xp: 5
                     }
@@ -623,11 +744,12 @@
             },
             
             pursuit_laxmi: {
-                text: "L'écran de bord s'allume soudain. C'est le visage de Laxmi, empreint d'une tristesse rageuse. 'Arrête-toi, [NOM]. Le monde se déchire à cause de votre folie. Si tu franchis la porte d'Anderlecht, nous te considérerons comme une menace pour l'équilibre.' Deux voitures Sentinelles surgissent derrière toi.",
-                scene: "🚓🚓",
+                title: "LA POURSUITE",
+                description: "L'écran de bord s'allume soudain. C'est le visage de Laxmi, empreint d'une tristesse rageuse. 'Arrête-toi. Le monde se déchire à cause de votre folie.'",
+                character: "LAXMI: GARDIENNE DE L'ÉQUILIBRE",
                 choices: [
                     { 
-                        text: "Percuter une Sentinelle (Force brute)", 
+                        text: "PERCUTER UNE SENTINELLE", 
                         next: "collide_sentinel", 
                         sync: -10,
                         alignment: -10,
@@ -637,7 +759,7 @@
                         skillLevel: 0
                     },
                     { 
-                        text: "Surcharger leurs systèmes (Piratage)", 
+                        text: "SURCHARGER LEURS SYSTÈMES", 
                         next: "overload_sentinels", 
                         sync: 15,
                         alignment: -5,
@@ -646,7 +768,7 @@
                         skillLevel: 1
                     },
                     { 
-                        text: "Tenter de négocier avec Laxmi", 
+                        text: "TENTER DE NÉGOCIER", 
                         next: "negotiate_laxmi", 
                         alignment: 10,
                         xp: 20
@@ -657,42 +779,29 @@
 
         // ==================== FONCTIONS DU JEU ====================
         
-        // Initialisation
         function initGame() {
-            loadGame(); // Essaie de charger une sauvegarde
+            loadGame();
             updateGame(gameState.currentChapter);
             updateMenu();
             
-            // Gestion du menu latéral
             document.getElementById('side-menu-btn').addEventListener('click', toggleMenu);
             document.getElementById('game-container').addEventListener('click', closeMenu);
             
-            // Vérifie si c'est une première visite
             if(!localStorage.getItem('pluribusFirstVisit')) {
-                showMessage("Bienvenue dans PLURIBUS : REBORN. Votre synchro mesure votre lien résiduel avec la Ruche. Gardez-la basse pour préserver votre humanité.", 5000);
+                showMessage("PLURIBUS: REBORN\n\nVOTRE SYNCHRO MESURE VOTRE LIEN AVEC LA RUCHE.\nGARDEZ-LA BASSE POUR PRÉSERVER VOTRE HUMANITÉ.", 5000);
                 localStorage.setItem('pluribusFirstVisit', 'true');
             }
         }
         
-        // Mise à jour de l'interface jeu
         function updateGame(chapterKey) {
             const chapter = storyData[chapterKey];
-            if (!chapter) {
-                console.error("Chapitre non trouvé:", chapterKey);
-                return;
-            }
+            if (!chapter) return;
             
-            // Mettre à jour l'état
             gameState.currentChapter = chapterKey;
             gameState.visitedChapters.add(chapterKey);
             
-            // Mettre à jour les éléments visuels
-            document.getElementById('scene-emoji').textContent = chapter.scene;
-            document.getElementById('story-text').textContent = 
-                chapter.text.replace(/\[NOM\]/g, gameState.playerName);
-            
-            // Effet machine à écrire
-            typewriterEffect(chapter.text.replace(/\[NOM\]/g, gameState.playerName));
+            // Mettre à jour la cinématique
+            updateCinematic(chapter);
             
             // Nettoyer les anciens choix
             const choicesContainer = document.getElementById('choices-container');
@@ -707,97 +816,98 @@
             // Ajouter les nouveaux choix
             if (chapter.choices && chapter.choices.length > 0) {
                 chapter.choices.forEach(choice => {
-                    // Vérifier les prérequis de compétence
                     if (choice.requiresSkill && gameState.skills[choice.requiresSkill] < (choice.skillLevel || 0)) {
-                        return; // Ne pas afficher ce choix si le joueur n'a pas le niveau requis
+                        return;
                     }
                     
                     const button = document.createElement('button');
                     button.className = 'choice-btn';
                     
-                    // Texte du choix avec indicateur XP
                     let buttonText = choice.text;
                     if (choice.xp) {
                         buttonText += ` <span class="choice-sync positive">+${choice.xp}XP</span>`;
                     }
                     if (choice.sync) {
                         const syncClass = choice.sync > 0 ? 'negative' : 'positive';
-                        const syncSymbol = choice.sync > 0 ? '▲' : '▼';
-                        buttonText += ` <span class="choice-sync ${syncClass}">${syncSymbol}${Math.abs(choice.sync)}%</span>`;
+                        buttonText += ` <span class="choice-sync ${syncClass}">${choice.sync > 0 ? '+' : ''}${choice.sync}%</span>`;
                     }
                     if (choice.health) {
                         const healthClass = choice.health > 0 ? 'positive' : 'negative';
-                        const healthSymbol = choice.health > 0 ? '❤️' : '💔';
-                        buttonText += ` <span class="choice-sync ${healthClass}">${healthSymbol}${Math.abs(choice.health)}</span>`;
+                        buttonText += ` <span class="choice-sync ${healthClass}">${choice.health > 0 ? '+' : ''}${choice.health}HP</span>`;
                     }
                     
                     button.innerHTML = buttonText;
                     
-                    // Gestion du clic
                     button.addEventListener('click', () => {
                         makeChoice(choice, chapterKey);
                     });
                     
-                    // Effet de survol tactile
                     button.addEventListener('touchstart', () => {
-                        button.style.transform = 'translateY(2px)';
+                        button.style.transform = 'translateX(2px)';
                     });
                     
                     button.addEventListener('touchend', () => {
-                        button.style.transform = 'translateY(0)';
+                        button.style.transform = 'translateX(0)';
                     });
                     
                     choicesContainer.appendChild(button);
                 });
             }
             
-            // Ajouter un choix de secours si aucun choix n'est disponible
-            if (choicesContainer.children.length === 0) {
-                const fallbackButton = document.createElement('button');
-                fallbackButton.className = 'choice-btn';
-                fallbackButton.textContent = "Continuer...";
-                fallbackButton.addEventListener('click', () => {
-                    gameState.currentChapter = "start";
-                    updateGame("start");
-                });
-                choicesContainer.appendChild(fallbackButton);
-            }
-            
-            // Effets visuels en fonction de la synchro
             updateVisualEffects();
             updateMenu();
         }
         
-        // Gestion des chapitres de type input
+        function updateCinematic(chapter) {
+            const cinematicText = document.getElementById('cinematic-text');
+            cinematicText.innerHTML = '';
+            
+            // Effet machine à écrire
+            const text = chapter.description.replace(/\[NOM\]/g, gameState.playerName);
+            let i = 0;
+            
+            function typeChar() {
+                if (i < text.length) {
+                    cinematicText.innerHTML += text.charAt(i);
+                    i++;
+                    const speed = gameState.sync > 70 ? 30 : gameState.sync > 40 ? 50 : 70;
+                    setTimeout(typeChar, speed);
+                }
+            }
+            
+            typeChar();
+            
+            // Mettre à jour les autres éléments
+            const sceneTitle = document.querySelector('.scene-title');
+            const sceneCharacter = document.querySelector('.scene-character');
+            
+            sceneTitle.textContent = chapter.title || '';
+            sceneCharacter.textContent = chapter.character || '';
+        }
+        
         function handleInputChapter(chapter) {
-            const name = prompt("Entre ton prénom (avant le Lien) :", gameState.playerName);
+            const name = prompt("ENTRE TON PRÉNOM (AVANT LE LIEN) :", gameState.playerName);
             if (name && name.trim() !== '') {
                 gameState.playerName = name.trim().toUpperCase();
                 document.getElementById('player-name').textContent = gameState.playerName;
                 document.getElementById('menu-name').textContent = gameState.playerName;
                 
-                // Ajouter XP pour la découverte de l'identité
                 gameState.xp += 20;
                 updateStats();
                 
-                // Passer au chapitre suivant
                 setTimeout(() => updateGame(chapter.next), 500);
             } else {
-                // Nom invalide, réessayer
                 setTimeout(() => updateGame('naming'), 100);
             }
         }
         
-        // Lorsqu'un choix est fait
         function makeChoice(choice, fromChapter) {
-            // Enregistrer dans l'historique
             gameState.choicesHistory.push({
                 chapter: fromChapter,
                 choice: choice.text,
                 timestamp: new Date().toISOString()
             });
             
-            // Appliquer les effets du choix
             if (choice.sync) {
                 gameState.sync = Math.max(0, Math.min(100, gameState.sync + choice.sync));
             }
@@ -808,31 +918,27 @@
             
             if (choice.xp) {
                 gameState.xp += choice.xp;
-                
-                // Vérifier les points de compétence
                 const newSkillPoints = Math.floor(gameState.xp / 100);
                 if (newSkillPoints > Math.floor((gameState.xp - choice.xp) / 100)) {
                     gameState.skillPoints += 1;
-                    showMessage(`Nouveau point de compétence disponible !`, 3000);
+                    showMessage("NOUVEAU POINT DE COMPÉTENCE DISPONIBLE", 3000);
                 }
             }
             
             if (choice.alignment) {
                 gameState.alignmentScore += choice.alignment;
-                if (gameState.alignmentScore < -20) gameState.alignment = "pro-Carol";
-                else if (gameState.alignmentScore > 20) gameState.alignment = "pro-Laxmi";
-                else gameState.alignment = "neutre";
+                if (gameState.alignmentScore < -20) gameState.alignment = "PRO-CAROL";
+                else if (gameState.alignmentScore > 20) gameState.alignment = "PRO-LAXMI";
+                else gameState.alignment = "NEUTRE";
             }
             
             if (choice.inventoryAdd && !gameState.inventory.includes(choice.inventoryAdd)) {
                 gameState.inventory.push(choice.inventoryAdd);
-                showMessage(`Objet ajouté : ${choice.inventoryAdd}`, 2000);
+                showMessage(`OBJET AJOUTÉ: ${choice.inventoryAdd}`, 2000);
             }
             
-            // Mettre à jour les stats
             updateStats();
             
-            // Effets spéciaux pour certains choix
             if (choice.sync && Math.abs(choice.sync) >= 10) {
                 triggerGlitchEffect(800);
             }
@@ -841,132 +947,67 @@
                 triggerDamageEffect();
             }
             
-            // Passer au chapitre suivant
             setTimeout(() => {
                 if (choice.next && storyData[choice.next]) {
                     updateGame(choice.next);
                 } else {
-                    // Chapitre suivant non trouvé, revenir au début
-                    console.warn("Chapitre suivant non trouvé:", choice.next);
                     updateGame("start");
                 }
             }, 500);
         }
         
-        // Mettre à jour les statistiques affichées
         function updateStats() {
-            // Mettre à jour les valeurs
             document.getElementById('sync-value').textContent = `${gameState.sync}%`;
             document.getElementById('health-value').textContent = `${gameState.health}%`;
             document.getElementById('xp-value').textContent = gameState.xp;
             
-            // Mettre à jour les barres de progression
             document.getElementById('sync-fill').style.width = `${gameState.sync}%`;
             document.getElementById('health-fill').style.width = `${gameState.health}%`;
             
-            // Mettre à jour les compétences dans le menu
-            document.getElementById('skill-hack').textContent = `Niv. ${gameState.skills.hack}`;
-            document.getElementById('skill-resist').textContent = `Niv. ${gameState.skills.resist}`;
-            document.getElementById('skill-tech').textContent = `Niv. ${gameState.skills.tech}`;
-            document.getElementById('skill-points').textContent = gameState.skillPoints;
-            
-            // Effets visuels selon la synchro
             updateVisualEffects();
-            
-            // Sauvegarder automatiquement
             saveGame();
         }
         
-        // Effets visuels en fonction de la synchro
         function updateVisualEffects() {
             const body = document.body;
             const syncValue = gameState.sync;
+            const bg = document.getElementById('cinematic-background');
             
-            // Retirer toutes les classes d'effet
-            body.classList.remove('low-sync', 'medium-sync', 'high-sync', 'critical-sync');
-            
-            // Ajouter la classe appropriée
+            // Effets selon la synchro
             if (syncValue >= 80) {
-                body.classList.add('critical-sync');
-                document.getElementById('scanlines').style.opacity = '0.3';
-                document.getElementById('vignette').style.opacity = '0.8';
-                
-                // Effet de pulsation critique
-                if (!window.criticalPulseInterval) {
-                    window.criticalPulseInterval = setInterval(() => {
-                        document.getElementById('scene-emoji').style.filter = 
-                            `drop-shadow(0 0 20px rgba(138, 43, 226, ${0.5 + Math.random() * 0.5}))`;
-                    }, 300);
-                }
-                
+                bg.style.backgroundColor = '#1a001a';
+                bg.style.opacity = '0.7';
+                body.style.cursor = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><rect x="0" y="0" width="16" height="16" fill="%23ff00ff"/></svg>\'), auto';
             } else if (syncValue >= 50) {
-                body.classList.add('high-sync');
-                document.getElementById('scanlines').style.opacity = '0.2';
-                document.getElementById('vignette').style.opacity = '0.6';
-                
-                // Arrêter la pulsation critique si elle était active
-                if (window.criticalPulseInterval) {
-                    clearInterval(window.criticalPulseInterval);
-                    window.criticalPulseInterval = null;
-                }
-                
-            } else if (syncValue >= 30) {
-                body.classList.add('medium-sync');
-                document.getElementById('scanlines').style.opacity = '0.1';
-                document.getElementById('vignette').style.opacity = '0.4';
+                bg.style.backgroundColor = '#001a00';
+                bg.style.opacity = '0.5';
             } else {
-                body.classList.add('low-sync');
-                document.getElementById('scanlines').style.opacity = '0.05';
-                document.getElementById('vignette').style.opacity = '0.2';
+                bg.style.backgroundColor = '#000';
+                bg.style.opacity = '0.3';
             }
         }
         
-        // Effet machine à écrire
-        function typewriterEffect(text) {
-            const element = document.getElementById('story-text');
-            element.textContent = '';
-            let i = 0;
-            
-            function typeChar() {
-                if (i < text.length) {
-                    element.textContent += text.charAt(i);
-                    i++;
-                    
-                    // Vitesse variable selon la synchro
-                    const speed = gameState.sync > 70 ? 10 : gameState.sync > 40 ? 20 : 30;
-                    setTimeout(typeChar, speed);
-                }
-            }
-            
-            typeChar();
-        }
-        
-        // Effet de glitch
         function triggerGlitchEffect(duration) {
             const overlay = document.getElementById('effects-overlay');
-            const scene = document.getElementById('scene-emoji');
+            const cinematic = document.getElementById('cinematic-foreground');
             
-            // Animation de glitch
-            overlay.style.background = 'radial-gradient(circle, rgba(138,43,226,0.3) 0%, transparent 70%)';
+            overlay.style.background = 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,255,0,0.2) 2px, rgba(0,255,0,0.2) 4px)';
             overlay.style.opacity = '0.7';
-            scene.classList.add('glitch-active');
+            cinematic.classList.add('glitch-active');
             
-            // Vibration si supportée
             if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
+                navigator.vibrate([50, 30, 50]);
             }
             
-            // Réinitialiser après la durée
             setTimeout(() => {
                 overlay.style.opacity = '0';
-                scene.classList.remove('glitch-active');
+                cinematic.classList.remove('glitch-active');
             }, duration);
         }
         
-        // Effet de dégâts
         function triggerDamageEffect() {
             const overlay = document.getElementById('effects-overlay');
-            overlay.style.background = 'radial-gradient(circle, rgba(255,77,77,0.4) 0%, transparent 70%)';
+            overlay.style.background = 'radial-gradient(circle, rgba(255,50,50,0.6) 0%, transparent 70%)';
             overlay.style.opacity = '0.6';
             
             setTimeout(() => {
@@ -974,7 +1015,6 @@
             }, 300);
         }
         
-        // Afficher un message temporaire
         function showMessage(message, duration) {
             const messageDiv = document.createElement('div');
             messageDiv.style.cssText = `
@@ -982,16 +1022,18 @@
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                background-color: rgba(26, 26, 26, 0.9);
+                background-color: #111;
                 color: var(--accent-color);
-                padding: 20px 30px;
-                border-radius: 10px;
-                border: 2px solid var(--accent-color);
+                padding: 20px;
+                border: 3px solid var(--accent-color);
                 z-index: 1001;
                 text-align: center;
                 max-width: 80%;
-                box-shadow: 0 0 30px rgba(138, 43, 226, 0.5);
-                font-weight: bold;
+                font-family: 'Courier New', monospace;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                line-height: 1.4;
+                white-space: pre-line;
             `;
             messageDiv.textContent = message;
             document.body.appendChild(messageDiv);
@@ -1005,61 +1047,51 @@
             }, duration);
         }
         
-        // Gestion du menu latéral
         function toggleMenu() {
             const menu = document.getElementById('side-menu');
             const isOpen = menu.style.right === '0px';
             menu.style.right = isOpen ? '-300px' : '0px';
             
-            // Animation du bouton
             const btn = document.getElementById('side-menu-btn');
-            btn.innerHTML = isOpen ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-times"></i>';
+            btn.innerHTML = isOpen ? '▣' : '✖';
         }
         
         function closeMenu() {
             document.getElementById('side-menu').style.right = '-300px';
-            document.getElementById('side-menu-btn').innerHTML = '<i class="fas fa-bars"></i>';
+            document.getElementById('side-menu-btn').innerHTML = '▣';
         }
         
-        // Mettre à jour le menu
         function updateMenu() {
-            // Mettre à jour les informations du personnage
             document.getElementById('menu-name').textContent = gameState.playerName;
             document.getElementById('menu-chapter').textContent = getChapterName(gameState.currentChapter);
             document.getElementById('menu-alignment').textContent = gameState.alignment;
             
-            // Mettre à jour l'inventaire
             const inventoryList = document.getElementById('inventory-list');
             inventoryList.innerHTML = '';
             
             gameState.inventory.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'inventory-item';
-                itemDiv.innerHTML = `<i class="fas fa-box"></i> ${item}`;
+                itemDiv.textContent = item.toUpperCase();
                 inventoryList.appendChild(itemDiv);
             });
             
-            // Mettre à jour les compétences
-            document.getElementById('skill-hack').textContent = `Niv. ${gameState.skills.hack}`;
-            document.getElementById('skill-resist').textContent = `Niv. ${gameState.skills.resist}`;
-            document.getElementById('skill-tech').textContent = `Niv. ${gameState.skills.tech}`;
+            document.getElementById('skill-hack').textContent = `LVL ${gameState.skills.hack}`;
+            document.getElementById('skill-resist').textContent = `LVL ${gameState.skills.resist}`;
+            document.getElementById('skill-tech').textContent = `LVL ${gameState.skills.tech}`;
             document.getElementById('skill-points').textContent = gameState.skillPoints;
             
-            // Ajouter des boutons pour améliorer les compétences
             addSkillUpgradeButtons();
         }
         
         function addSkillUpgradeButtons() {
             const skillSection = document.querySelector('.menu-section:nth-child(2)');
-            
-            // Nettoyer les anciens boutons d'amélioration
             document.querySelectorAll('.upgrade-btn').forEach(btn => btn.remove());
             
-            // Ajouter des boutons d'amélioration pour chaque compétence
             const skills = [
-                { id: 'hack', name: 'Piratage de Ruche', cost: gameConfig.baseSkillCost * (gameState.skills.hack + 1) },
-                { id: 'resist', name: 'Résilience Psychique', cost: gameConfig.baseSkillCost * (gameState.skills.resist + 1) },
-                { id: 'tech', name: 'Expertise Tactile', cost: gameConfig.baseSkillCost * (gameState.skills.tech + 1) }
+                { id: 'hack', name: 'PIRATAGE', cost: gameConfig.baseSkillCost * (gameState.skills.hack + 1) },
+                { id: 'resist', name: 'RÉSILIENCE', cost: gameConfig.baseSkillCost * (gameState.skills.resist + 1) },
+                { id: 'tech', name: 'EXPERTISE', cost: gameConfig.baseSkillCost * (gameState.skills.tech + 1) }
             ];
             
             skills.forEach(skill => {
@@ -1068,8 +1100,8 @@
                     upgradeBtn.className = 'choice-btn upgrade-btn';
                     upgradeBtn.style.marginTop = '5px';
                     upgradeBtn.style.padding = '8px';
-                    upgradeBtn.style.fontSize = '12px';
-                    upgradeBtn.innerHTML = `<i class="fas fa-arrow-up"></i> Améliorer ${skill.name} (${skill.cost} XP)`;
+                    upgradeBtn.style.fontSize = '10px';
+                    upgradeBtn.innerHTML = `▲ ${skill.name} (${skill.cost}XP)`;
                     
                     upgradeBtn.addEventListener('click', () => {
                         upgradeSkill(skill.id, skill.cost);
@@ -1087,38 +1119,40 @@
                 gameState.skillPoints -= 1;
                 updateStats();
                 updateMenu();
-                showMessage(`${skillId === 'hack' ? 'Piratage' : skillId === 'resist' ? 'Résilience' : 'Expertise'} amélioré(e) !`, 2000);
+                showMessage(`${skillId === 'hack' ? 'PIRATAGE' : skillId === 'resist' ? 'RÉSILIENCE' : 'EXPERTISE'} AMÉLIORÉ(E)`, 2000);
             } else {
-                showMessage(`Pas assez d'XP ! Il vous faut ${cost} XP.`, 2000);
+                showMessage(`XP INSUFFISANT: ${cost} XP REQUIS`, 2000);
             }
         }
         
         function getChapterName(chapterKey) {
             const chapterNames = {
-                'start': 'Prologue: Bruxelles',
-                'naming': 'Identité',
-                'awakening': 'Le Réveil',
-                'stay_connected': 'La Connexion',
-                'rebel': 'La Rébellion',
-                'violence': 'La Violence',
-                'escape_brussels': 'La Fuite',
-                'car_theft': 'Le Véhicule',
-                'pursuit_laxmi': 'La Poursuite'
+                'start': 'PROLOGUE',
+                'naming': 'IDENTITÉ',
+                'awakening': 'RÉVEIL',
+                'stay_connected': 'CONNEXION',
+                'rebel': 'RÉBELLION',
+                'violence': 'VIOLENCE',
+                'escape_brussels': 'FUITE',
+                'car_theft': 'VÉHICULE',
+                'pursuit_laxmi': 'POURSUITE'
             };
-            return chapterNames[chapterKey] || chapterKey;
+            return chapterNames[chapterKey] || chapterKey.toUpperCase();
         }
         
-        // Sauvegarde
         function saveGame() {
             const saveData = {
                 version: 1.0,
                 timestamp: new Date().toISOString(),
-                gameState: gameState
+                gameState: {
+                    ...gameState,
+                    visitedChapters: Array.from(gameState.visitedChapters)
+                }
             };
             
             try {
                 localStorage.setItem('pluribusSave', JSON.stringify(saveData));
-                console.log('Jeu sauvegardé');
+                showMessage('PARTIE SAUVEGARDÉE', 1500);
             } catch (e) {
                 console.error('Erreur de sauvegarde:', e);
             }
@@ -1129,19 +1163,14 @@
                 const saveData = JSON.parse(localStorage.getItem('pluribusSave'));
                 
                 if (saveData && saveData.gameState) {
-                    // Charger l'état du jeu
                     gameState = { ...saveData.gameState };
+                    gameState.visitedChapters = new Set(gameState.visitedChapters || ["start"]);
                     
-                    // Convertir Set depuis JSON
-                    if (gameState.visitedChapters && Array.isArray(gameState.visitedChapters)) {
-                        gameState.visitedChapters = new Set(gameState.visitedChapters);
-                    }
-                    
-                    // Mettre à jour l'interface
                     document.getElementById('player-name').textContent = gameState.playerName;
                     updateStats();
+                    updateGame(gameState.currentChapter);
                     
-                    showMessage('Partie chargée', 2000);
+                    showMessage('PARTIE CHARGÉE', 1500);
                     return true;
                 }
             } catch (e) {
@@ -1152,8 +1181,7 @@
         }
         
         function resetGame() {
-            if (confirm('Recommencer une nouvelle partie ? Votre progression actuelle sera perdue.')) {
-                // Réinitialiser l'état du jeu
+            if (confirm('RECOMMENCER UNE NOUVELLE PARTIE ?\n\nPROGRESSION ACTUELLE PERDUE.')) {
                 gameState = {
                     playerName: "INCONNU",
                     currentChapter: "start",
@@ -1169,33 +1197,26 @@
                     choicesHistory: []
                 };
                 
-                // Mettre à jour l'interface
                 document.getElementById('player-name').textContent = "INCONNU";
                 updateStats();
                 updateGame("start");
                 
-                showMessage('Nouvelle partie commencée', 2000);
+                showMessage('NOUVELLE PARTIE COMMENCÉE', 2000);
             }
         }
         
         // ==================== DÉMARRAGE DU JEU ====================
-        // Attendre que le DOM soit chargé
         document.addEventListener('DOMContentLoaded', initGame);
         
-        // Prévenir la fermeture accidentelle
         window.addEventListener('beforeunload', (e) => {
             saveGame();
-            // Sur mobile, on ne montre pas de confirmation pour une meilleure UX
         });
         
-        // Gestion du retour en arrière sur mobile
         window.addEventListener('popstate', (e) => {
-            // Empêcher le retour en arrière du navigateur
             history.pushState(null, null, window.location.pathname);
         });
         
-        // Initialiser l'historique
         history.pushState(null, null, window.location.pathname);
     </script>
 </body>
-</html>
+    </html>
